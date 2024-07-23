@@ -19,6 +19,21 @@
         "corecrt_malloc.h": "c",
         "config.h": "c",
         "defines.h": "c",
-        "utility.h": "c"
+        "utility.h": "c",
+        "system_error": "cpp",
+        "typeindex": "cpp",
+        "xlocale": "cpp",
+        "xstring": "cpp",
+        "array.h": "c",
+        "array": "c",
+        "compare": "c",
+        "memory": "c",
+        "tuple": "c",
+        "utility": "c",
+        "xmemory": "c",
+        "*.m": "c",
+        "initializer_list": "c",
+        "list": "c",
+        "vector": "c"
     }
 }
