@@ -13,6 +13,12 @@
         "types.h": "c",
         "json.h": "c",
         "stdlib.h": "c",
-        "string.h": "c"
+        "string.h": "c",
+        "ctype.h": "c",
+        "tiny-json.h": "c",
+        "corecrt_malloc.h": "c",
+        "config.h": "c",
+        "defines.h": "c",
+        "utility.h": "c"
     }
 }

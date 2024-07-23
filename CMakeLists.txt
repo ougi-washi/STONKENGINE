@@ -10,7 +10,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(LIB_DIR "lib")
 set(INC_DIR "include")
 set(SRC_DIR "src")
-set(BIN_DIR "binaries")
+set(BIN_DIR "bin")
 
 # setup library macro
 macro(setup_library arg_lib_name arg_source_path arg_include_path)
@@ -29,10 +29,14 @@ find_package(Threads REQUIRED)
 message(STATUS "Adding Raylib library")
 add_subdirectory(${LIB_DIR}/raylib)
 
+# JSON library
+set(JSON_DIR "json")
+setup_library(json_lib ${PROJECT_SOURCE_DIR}/${LIB_DIR}/${JSON_DIR} ${PROJECT_SOURCE_DIR}/${LIB_DIR}/${JSON_DIR})
+
 # Main module
 set(MAIN_MODULE_INCLUDES ${PROJECT_SOURCE_DIR}/${INC_DIR} ${PROJECT_SOURCE_DIR}/${LIB_DIR})
 setup_library(main_module ${SRC_DIR} "${MAIN_MODULE_INCLUDES}")
-target_link_libraries(main_module PUBLIC raylib)
+target_link_libraries(main_module PUBLIC raylib json_lib)
 
 # Executable
 add_executable(${PROJECT_NAME} main.c)
