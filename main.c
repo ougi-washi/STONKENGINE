@@ -1,8 +1,13 @@
 // Abstract City - Jed Fakhfekh - https://github.com/ougi-washi
 #include "engine.h"
 
-int main(int argc, char const *argv[])
+i32 main(i32 argc, c8 const *argv[])
 {
-    ac_test_window();
+    ac_engine_start();
+    while (ac_engine_should_loop())
+    {
+        /* code */
+    }
+    ac_engine_end();
     return 0;
 }

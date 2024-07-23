@@ -10,6 +10,9 @@
         "xutility": "cpp",
         "assert.h": "c",
         "stdbool.h": "c",
-        "types.h": "c"
+        "types.h": "c",
+        "json.h": "c",
+        "stdlib.h": "c",
+        "string.h": "c"
     }
 }
