@@ -1,0 +1,15 @@
+{
+    "files.associations": {
+        "engine.h": "c",
+        "raylib.h": "c",
+        "rlgl.h": "c",
+        "algorithm": "cpp",
+        "optional": "cpp",
+        "type_traits": "cpp",
+        "xtr1common": "cpp",
+        "xutility": "cpp",
+        "assert.h": "c",
+        "stdbool.h": "c",
+        "types.h": "c"
+    }
+}
