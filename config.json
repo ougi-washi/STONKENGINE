@@ -1,6 +1,28 @@
 {
-  "window_width": 1500,
-  "window_height": 600,
-  "window_name": "Abstract City",
-  "target_fps": 260
+  "window": {
+    "width": 800,
+    "height": 600,
+    "name": "Abstract City"
+  },
+  "render": {
+    "target_fps": 260
+  },
+  "paths": {
+    "assets": {
+      "game": {
+        "models": "assets/game/models/",
+        "textures": "assets/game/textures/",
+        "sounds": "assets/game/sounds/",
+        "shaders": "assets/game/shaders/",
+        "fonts": "assets/game/fonts/"
+      },
+      "engine": {
+        "models": "assets/engine/models/",
+        "textures": "assets/engine/textures/",
+        "sounds": "assets/engine/sounds/",
+        "shaders": "assets/engine/shaders/",
+        "fonts": "assets/engine/fonts/"
+      }
+    }
+  }
 }

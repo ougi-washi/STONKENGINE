@@ -3,6 +3,7 @@
 #include "types.h"
 #include "array.h"
 #include "raylib.h"
+#include "json.h"
 
 typedef struct ac_model
 {
@@ -45,9 +46,10 @@ typedef struct ac_engine
 {
     ac_scene scene;
     ac_model_pool model_pool;
+    ac_json_config config;
 } ac_engine;
 
-extern ac_engine engine;
+extern ac_engine* engine;
 
 // engine
 void ac_engine_start();
@@ -56,15 +58,22 @@ void ac_engine_end();
 Model* ac_engine_get_model(const c8* path);
 // scene
 void ac_scene_init(ac_scene* scene);
-void ac_scene_add_model(ac_scene* scene, Model* model);
-void ac_scene_add_camera(ac_scene* scene, Camera camera);
 void ac_scene_render(ac_scene* scene);
+void ac_scene_add_model(ac_scene* scene, Model* model);
+void ac_scene_add_camera(ac_scene* scene, Camera camera, const b8 is_active);
+ac_camera* ac_scene_make_new_camera(ac_scene* scene);
+Camera* ac_scene_get_active_camera(ac_scene* scene);
 // model
 void ac_model_render(ac_model* model);
 void ac_model_render_wireframe(ac_model* model);
 void ac_model_render_instances(ac_model* model, Matrix* transforms, const i32 count);
 // camera
-void ac_camera_set_position(ac_camera* camera, Vector3 position);
-void ac_camera_set_target(ac_camera* camera, Vector3 target);
-void ac_camera_set_fovy(ac_camera* camera, f32 fovy);
-void ac_camera_set_active(ac_camera* camera, b8 new_state);
+void ac_camera_set_position(ac_camera* camera, const Vector3 position);
+void ac_camera_set_target(ac_camera* camera, const Vector3 target);
+void ac_camera_set_fovy(ac_camera* camera, const f32 fovy);
+void ac_camera_set_active(ac_camera* camera, const b8 new_state);
+//config
+void ac_config_load();
+void ac_config_unload();
+b8 ac_config_window_get_size(i32* width, i32* height);
+c8* ac_config_window_get_name();

@@ -26,12 +26,13 @@
     static inline sz name##_size(const name* arr) { \
         return arr->size; \
     } \
-    static inline void name##_push_back(name* arr, type value) { \
+    static inline sz name##_push_back(name* arr, type value) { \
         if (arr->size == arr->capacity) { \
             arr->capacity = arr->capacity == 0 ? 1 : arr->capacity * 2; \
             arr->data = (type*)realloc(arr->data, arr->capacity * sizeof(type)); \
         } \
         arr->data[arr->size++] = value; \
+        return arr->size - 1; \
     } \
     static inline type* name##_increment(name* arr) { \
         if (arr->size == arr->capacity) { \
@@ -61,13 +62,13 @@
     static inline void name##_remove(name* arr, type* value) { \
         for (sz i = 0; i < arr->size; i++) { \
             if (&arr->data[i] == value) { \
-                name_remove_at(arr, i); \
+                name##_remove_at(arr, i); \
                 return; \
             } \
         } \
     } \
     \
-    static inline void name##_free(name* arr) { \
+    static inline void name##_clear(name* arr) { \
         free(arr->data); \
         arr->data = NULL; \
         arr->size = 0; \
