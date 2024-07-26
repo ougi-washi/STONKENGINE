@@ -36,8 +36,7 @@ void ac::engine_end(){
     delete engine_instance;
 }
 
-ac::engine *ac::engine_get_instance()
-{
+ac::engine *ac::engine_get_instance(){
     if (!engine_instance) { log_error("Engine instance is NULL"); return NULL; }
     return engine_instance;
 }
@@ -87,8 +86,7 @@ void ac::scene_add_camera(ac::scene *scene, Camera camera, const b8 is_active){
     else { log_error("Failed to add camera to scene"); }
 }
 
-ac::camera *ac::scene_make_new_camera(ac::scene *scene)
-{
+ac::camera *ac::scene_make_new_camera(ac::scene *scene){
     if(!scene) { log_error("Scene is NULL"); return NULL; }
     ac::camera* scene_camera = ac::push_back(&scene->cameras);
     if(scene_camera) {
@@ -121,8 +119,7 @@ void ac::scene_render(ac::scene *scene){
     EndDrawing();
 }
 
-ac::scene *ac::scene_get_active()
-{
+ac::scene *ac::scene_get_active(){
     // currently only one scene is supported
     ac::scene* scene = &ac::engine_get_instance()->scene;
     return scene;
@@ -208,8 +205,7 @@ const std::string ac::config_window_get_name(){
     return window_json["name"].get<std::string>();
 }
 
-const i32 ac::config_render_get_target_fps()
-{
+const i32 ac::config_render_get_target_fps(){
     const json& render_json = ac::config_get_value<json>("render");
     if (!render_json.contains("target_fps")) { log_error("Could not find target_fps in config"); return 60; }
     if (!render_json["target_fps"].is_number_integer()) { log_error("target_fps is not an integer"); return 60; }

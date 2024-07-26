@@ -6,6 +6,16 @@ cmake_minimum_required(VERSION 3.22.1)
 project(AbstractCity LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 20)
 
+if(NOT CMAKE_GENERATOR)
+    find_program(NINJA_EXECUTABLE ninja)
+    if(NINJA_EXECUTABLE)
+        set(CMAKE_GENERATOR "Ninja" CACHE INTERNAL "Ninja")
+        message(STATUS "Ninja build system found. Using Ninja generator.")
+    else()
+        message(STATUS "Ninja build system not found. Using default generator.")
+    endif()
+endif()
+
 # Directory setup
 set(LIB_DIR "lib")
 set(INC_DIR "include")
@@ -33,9 +43,6 @@ add_subdirectory(${LIB_DIR}/raylib)
 set(MAIN_MODULE_INCLUDES ${PROJECT_SOURCE_DIR}/${INC_DIR} ${PROJECT_SOURCE_DIR}/${LIB_DIR})
 setup_library(main_module ${SRC_DIR} "${MAIN_MODULE_INCLUDES}")
 target_link_libraries(main_module PUBLIC raylib)
-
-# message(STATUS "Adding Threads")
-# find_package(Threads REQUIRED)
 
 # Executable
 add_executable(${PROJECT_NAME} main.cpp)
