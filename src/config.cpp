@@ -3,5 +3,4 @@
 #include "utility.h"
 #include "defines.h"
 #include "log.h"
-#include <corecrt_malloc.h>
 

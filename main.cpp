@@ -5,7 +5,7 @@
 #include <thread>
 #include <chrono>
 
-i32 main(i32 argc, c8 const *argv[]){
+i32 main(i32 argc, char const *argv[]){
     ac::engine_start();
     ac::scene scene;
     ac::scene_init(&scene);

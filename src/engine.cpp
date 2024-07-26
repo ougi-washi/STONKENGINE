@@ -15,14 +15,11 @@ void ac::engine_start(){
     i32 window_width = 0;
     i32 window_height = 0;
     ac::config_window_get_size(&window_width, &window_height);
-    const c8* window_name = ac::config_window_get_name();
-    const i32 target_fps = ac::json_get_int(&engine->config, "target_fps");
-    InitWindow(window_width, window_height, window_name);
+    const std::string& window_name = ac::config_window_get_name();
+    const i32 target_fps = ac::config_render_get_target_fps();
+    InitWindow(window_width, window_height, window_name.c_str());
     SetWindowState(FLAG_WINDOW_RESIZABLE);
     SetTargetFPS(target_fps);
-
-    log_info("Initializing models pool");
-    ac::model_pool_init(&engine->model_pool);
 }
 
 b8 ac::engine_should_loop(){
@@ -32,7 +29,11 @@ b8 ac::engine_should_loop(){
 void ac::engine_end(){
     log_info("Clearing engine");
     CloseWindow();
-    ac::model_pool_clear(&engine->model_pool);
+    engine* engine = ac::engine_get_instance();
+    for (ac::model_loaded& model_loaded : engine->models_pool){
+        UnloadModel(model_loaded.model); 
+    }
+    engine->models_pool.clear();
     ac::config_unload();
     delete engine_instance;
 }
@@ -43,18 +44,18 @@ ac::engine *ac::engine_get_instance()
     return engine_instance;
 }
 
-Model* ac::engine_get_model(const c8 *path){
-    for (i32 i = 0; i < ac::model_pool_size(&engine->model_pool); i++){
-        ac::model_loaded* model_loaded = ac::model_pool_get(&engine->model_pool, i);
-        if (model_loaded){
-            if (strcmp(model_loaded->path, path) == 0){
-                return &model_loaded->model;
-            }
+Model* ac::engine_get_model(const char *path){
+    if (!path) { log_error("Path is NULL"); return NULL; }
+    ac::engine* engine = ac::engine_get_instance();
+    for (ac::model_loaded& model_loaded : ac::engine_get_instance()->models_pool){
+        if (strcmp(model_loaded.path, path) == 0){
+            return &model_loaded.model;
         }
         else{
             log_info("Model not found, loading model");
-            ac::model_loaded* model_loaded = ac::model_pool_increment(&engine->model_pool);
-            if (!model_loaded) { log_error("Failed to add model to the loop"); return NULL; }
+            engine->models_pool.push_back({});
+            ac::model_loaded* model_loaded = &engine->models_pool.back();
+            if (!model_loaded) { log_error("Failed to add model to the pool"); return NULL; }
             model_loaded->model = LoadModel(path);
             strcpy(model_loaded->path, path);
             return &model_loaded->model; 
@@ -65,14 +66,12 @@ Model* ac::engine_get_model(const c8 *path){
 
 void ac::scene_init(ac::scene *scene){
     if(!scene) { log_error("Scene is NULL"); return; }
-    ac::model_array_init(&scene->models);
-    ac::camera_array_init(&scene->cameras);
 }
 
 void ac::scene_add_model(ac::scene *scene, Model* model){
     if(!scene) { log_error("Scene is NULL"); return; }
     if(!model) { log_error("Model is NULL"); return; }
-    ac::model* scene_model = ac::model_array_increment(&scene->models);
+    ac::model* scene_model = ac::push_back(&scene->models);
     if(scene_model) {
         scene_model->model = model; 
         scene_model->transform = {0};
@@ -82,7 +81,7 @@ void ac::scene_add_model(ac::scene *scene, Model* model){
 
 void ac::scene_add_camera(ac::scene *scene, Camera camera, const b8 is_active){
     if(!scene) { log_error("Scene is NULL"); return; }
-    ac::camera* scene_camera = ac::camera_array_increment(&scene->cameras);
+    ac::camera* scene_camera = ac::push_back(&scene->cameras);
     if(scene_camera) {
         scene_camera->camera = camera;
         ac::camera_set_active(scene_camera, is_active);
@@ -93,7 +92,7 @@ void ac::scene_add_camera(ac::scene *scene, Camera camera, const b8 is_active){
 ac::camera *ac::scene_make_new_camera(ac::scene *scene)
 {
     if(!scene) { log_error("Scene is NULL"); return NULL; }
-    ac::camera* scene_camera = ac::camera_array_increment(&scene->cameras);
+    ac::camera* scene_camera = ac::push_back(&scene->cameras);
     if(scene_camera) {
         scene_camera->camera = {
             {10.0f, 10.0f, 10.0f}, // position
@@ -124,11 +123,17 @@ void ac::scene_render(ac::scene *scene){
     EndDrawing();
 }
 
+ac::scene *ac::scene_get_active()
+{
+    // currently only one scene is supported
+    ac::scene* scene = &ac::engine_get_instance()->scene;
+    return scene;
+}
+
 Camera *ac::scene_get_active_camera(ac::scene *scene){
     if(!scene) { log_error("Cannot get active camera, scene is NULL"); return NULL; }
-    for (i32 i = 0; i < ac::camera_array_size(&scene->cameras); i++){
-        ac::camera* camera = ac::camera_array_get(&scene->cameras, i);
-        if(camera && camera->is_active) { return &camera->camera; }
+    for (ac::camera& camera : scene->cameras){
+        if(camera.is_active) { return &camera.camera; }
     }
     return NULL;
 }
@@ -180,33 +185,35 @@ void ac::camera_set_fovy(ac::camera *camera, const f32 fovy){
 
 void ac::camera_set_active(ac::camera *camera, const b8 new_state){
     if (!camera) { log_error("Cannot set camera active state, camera is NULL"); return; }
-    for(sz i = 0; i < ac::camera_array_size(&engine->scene.cameras); i++){
-        ac::camera* scene_camera = ac::camera_array_get(&engine->scene.cameras, i);
-        if(scene_camera) { scene_camera->is_active = false; }
+    ac::scene* scene = ac::scene_get_active();
+    for (ac::camera& camera : scene->cameras){
+        camera.is_active = false;
     }
     camera->is_active = new_state;
 }
 
-void ac::config_load()
-{
-    ac::json_load(&engine->config, ac::CONFIG_FILE);
-}
-
-void ac::config_unload()
-{
-    ac::json_unload(&engine->config);
-}
-
 b8 ac::config_window_get_size(i32 *width, i32 *height){
-    if (!width || !height) { log_error("Cannot get window size, width or height is NULL"); return false; }
-    const json_t* window_json = ac::json_get_json(&engine->config, "window");
-    // *width = ac::json_get_int(window_json, "width");
-    // *height = ac::json_get_int(window_json, "height");
+    const json& window_json = ac::config_get_value<json>("window");
+    if (!window_json.contains("width")) { log_error("Could not find window width in config"); return false; }
+    if (!window_json.contains("height")) { log_error("Could not find window height in config"); return false; }
+    if (!window_json["width"].is_number_integer()) { log_error("Window width is not an integer"); return false; }
+    if (!window_json["height"].is_number_integer()) { log_error("Window height is not an integer"); return false; }
+    *width = window_json["width"].get<i32>();
+    *height = window_json["height"].get<i32>();
     return true;
 }
 
-c8 *ac::config_window_get_name(){
-    const json_t* window_json = ac::json_get_json(&engine->config, "window");
-    // return ac::json_get_string(window_json, "name");
-    return NULL;
+const std::string ac::config_window_get_name(){
+    const json& window_json = ac::config_get_value<json>("window");
+    if (!window_json.contains("name")) { log_error("Could not find window name in config"); return AC_STRING_NONE; }
+    if (!window_json["name"].is_string()) { log_error("Window name is not a string"); return AC_STRING_NONE; }
+    return window_json["name"].get<std::string>();
+}
+
+const i32 ac::config_render_get_target_fps()
+{
+    const json& render_json = ac::config_get_value<json>("render");
+    if (!render_json.contains("target_fps")) { log_error("Could not find target_fps in config"); return 60; }
+    if (!render_json["target_fps"].is_number_integer()) { log_error("target_fps is not an integer"); return 60; }
+    return render_json["target_fps"].get<i32>();
 }

@@ -4,7 +4,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <vector>
+#include "log.h"
 #include "types.h"
+
+namespace ac
+{
+    template<typename T>
+    T* push_back(std::vector<T> *array){
+        if(!array) { log_error("Array is NULL"); return NULL; }
+        array->push_back({});
+        return &array->back();
+    }
+}
 
 
 #define AC_DECLARE_ARRAY(type, name) \
@@ -87,6 +99,5 @@ AC_DECLARE_ARRAY(f32, f32_array)
 AC_DECLARE_ARRAY(f64, f64_array)
 AC_DECLARE_ARRAY(sz, sz_array)
 AC_DECLARE_ARRAY(b8, b8_array)
-AC_DECLARE_ARRAY(c8, c8_array)
-AC_DECLARE_ARRAY(uc8, uc8_array)
+AC_DECLARE_ARRAY(char, char_array)
 AC_DECLARE_ARRAY(void*, void_array)

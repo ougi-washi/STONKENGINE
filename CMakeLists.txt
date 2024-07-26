@@ -29,10 +29,6 @@ find_package(Threads REQUIRED)
 message(STATUS "Adding Raylib library")
 add_subdirectory(${LIB_DIR}/raylib)
 
-# JSON library
-set(JSON_DIR "json")
-setup_library(json_lib ${PROJECT_SOURCE_DIR}/${LIB_DIR}/${JSON_DIR} ${PROJECT_SOURCE_DIR}/${LIB_DIR}/${JSON_DIR})
-
 # Main module
 set(MAIN_MODULE_INCLUDES ${PROJECT_SOURCE_DIR}/${INC_DIR} ${PROJECT_SOURCE_DIR}/${LIB_DIR})
 setup_library(main_module ${SRC_DIR} "${MAIN_MODULE_INCLUDES}")

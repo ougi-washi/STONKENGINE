@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-c8* ac::read_file_text(const c8 *path)
+char* ac::read_file_text(const char *path)
 {
     FILE *file = fopen(path, "r");
     if (file == NULL) {
@@ -15,7 +15,7 @@ c8* ac::read_file_text(const c8 *path)
     long file_size = ftell(file);
     rewind(file);
 
-    c8 *buffer = (c8 *)malloc(file_size + 1);
+    char *buffer = (char *)malloc(file_size + 1);
     if (buffer == NULL) {
         fclose(file);
         return NULL; // Failed to allocate memory

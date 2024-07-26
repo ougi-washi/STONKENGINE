@@ -19,8 +19,6 @@ typedef float   		f32;
 typedef double		    f64;
 typedef size_t		    sz;
 typedef bool		    b8;
-typedef char            c8;
-typedef unsigned char   uc8;
 
 // Platform detection
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__)

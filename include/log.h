@@ -4,11 +4,11 @@
 
 namespace ac
 {
-    const c8* LOG_LEVEL_INFO =  "INFO"; 
-    const c8* LOG_LEVEL_WARN =  "WARN";
-    const c8* LOG_LEVEL_ERROR = "ERROR";
+    static const char* LOG_LEVEL_INFO =  "INFO"; 
+    static const char* LOG_LEVEL_WARN =  "WARN";
+    static const char* LOG_LEVEL_ERROR = "ERROR";
 
-    void log_message(const c8 *level, const c8 *file, const i32 line, const c8 *fmt, ...);
+    void log_message(const char *level, const char *file, const i32 line, const char *fmt, ...);
 } // namespace ac
 
 #define log_info(...) ac::log_message(ac::LOG_LEVEL_INFO, __FILE__, __LINE__, __VA_ARGS__)

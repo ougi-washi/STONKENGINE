@@ -3,6 +3,6 @@
 #include "types.h"
 
 namespace ac{
-    c8* read_file_text(const c8* path);
+    char* read_file_text(const char* path);
 } // namespace ac
 
