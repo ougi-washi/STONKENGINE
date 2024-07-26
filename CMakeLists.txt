@@ -32,7 +32,10 @@ add_subdirectory(${LIB_DIR}/raylib)
 # Main module
 set(MAIN_MODULE_INCLUDES ${PROJECT_SOURCE_DIR}/${INC_DIR} ${PROJECT_SOURCE_DIR}/${LIB_DIR})
 setup_library(main_module ${SRC_DIR} "${MAIN_MODULE_INCLUDES}")
-target_link_libraries(main_module PUBLIC raylib json_lib)
+target_link_libraries(main_module PUBLIC raylib)
+
+# message(STATUS "Adding Threads")
+# find_package(Threads REQUIRED)
 
 # Executable
 add_executable(${PROJECT_NAME} main.cpp)

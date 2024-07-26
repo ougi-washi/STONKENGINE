@@ -18,8 +18,7 @@ namespace ac{
             return T();
         }
 
-        std::ifstream f("example.json");
-        json data = json::parse(f);
+        json data = json::parse(file);
         file.close();
 
         if (!data.contains(key)) {
@@ -50,28 +49,3 @@ namespace ac{
         return T();
     }
 }
-// void config_load();
-// void config_unload();
-
-// i32 config_get_int(const char* key);
-// f32 config_get_float(const char* key);
-// char* config_get_string(const char* key);
-// b8 config_get_bool(const char* key);
-// const json_t* config_get_json(const char* key);
-
-// b8 config_get_int_array(const char* key, i32* out, i32* count);
-// b8 config_get_float_array(const char* key, f32* out, i32* count);
-// b8 config_get_string_array(const char* key, char** out, i32* count);
-// b8 config_get_bool_array(const char* key, b8* out, i32* count);
-// b8 config_get_json_array(const char* key, const json_t** out, i32* count);
-
-// b8 config_get_game_models_path(const char* key, char* out, i32* out_size);
-// b8 config_get_game_texturs_path(const char* key, char* out, i32* out_size);
-// b8 config_get_game_shaders_path(const char* key, char* out, i32* out_size);
-// b8 config_get_game_sounds_path(const char* key, char* out, i32* out_size);
-// b8 config_get_game_fonts_path(const char* key, char* out, i32* out_size);
-// b8 config_get_engine_models_path(const char* key, char* out, i32* out_size);
-// b8 config_get_engine_texturs_path(const char* key, char* out, i32* out_size);
-// b8 config_get_engine_shaders_path(const char* key, char* out, i32* out_size);
-// b8 config_get_engine_sounds_path(const char* key, char* out, i32* out_size);
-// b8 config_get_engine_fonts_path(const char* key, char* out, i32* out_size);

@@ -70,8 +70,6 @@ namespace ac{
     void camera_set_fovy(camera* camera, const f32 fovy);
     void camera_set_active(camera* camera, const b8 new_state);
     //config
-    void config_load();
-    void config_unload();
     b8 config_window_get_size(i32* width, i32* height);
     const std::string config_window_get_name();
     const i32 config_render_get_target_fps();

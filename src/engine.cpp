@@ -11,7 +11,6 @@ ac::engine* engine_instance = NULL;
 void ac::engine_start(){
     log_info("Starting engine");
     engine_instance = new engine();
-    ac::config_load();
     i32 window_width = 0;
     i32 window_height = 0;
     ac::config_window_get_size(&window_width, &window_height);
@@ -34,7 +33,6 @@ void ac::engine_end(){
         UnloadModel(model_loaded.model); 
     }
     engine->models_pool.clear();
-    ac::config_unload();
     delete engine_instance;
 }
 
