@@ -48,4 +48,13 @@ namespace ac{
         log_error("Could not get config value for key: %s, invalid json type %s", key.c_str());
         return T();
     }
+
+    json config_get_paths();
+    json config_get_assets_paths();
+    std::string config_get_root_path();
+    std::string config_get_models_path();
+    std::string config_get_shaders_path();
+    std::string config_get_textures_path();
+    std::string config_get_sounds_path();
+    std::string config_get_fonts_path();
 }

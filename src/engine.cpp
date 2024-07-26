@@ -41,26 +41,6 @@ ac::engine *ac::engine_get_instance(){
     return engine_instance;
 }
 
-Model* ac::engine_get_model(const char *path){
-    if (!path) { log_error("Path is NULL"); return NULL; }
-    ac::engine* engine = ac::engine_get_instance();
-    for (ac::model_loaded& model_loaded : ac::engine_get_instance()->models_pool){
-        if (strcmp(model_loaded.path, path) == 0){
-            return &model_loaded.model;
-        }
-        else{
-            log_info("Model not found, loading model");
-            engine->models_pool.push_back({});
-            ac::model_loaded* model_loaded = &engine->models_pool.back();
-            if (!model_loaded) { log_error("Failed to add model to the pool"); return NULL; }
-            model_loaded->model = LoadModel(path);
-            strcpy(model_loaded->path, path);
-            return &model_loaded->model; 
-        }
-    }
-    return NULL;
-}
-
 void ac::scene_init(ac::scene *scene){
     if(!scene) { log_error("Scene is NULL"); return; }
 }
@@ -71,7 +51,11 @@ void ac::scene_add_model(ac::scene *scene, Model* model){
     ac::model* scene_model = ac::push_back(&scene->models);
     if(scene_model) {
         scene_model->model = model; 
-        scene_model->transform = {0};
+        scene_model->transform = {
+            {0.0f, 0.0f, 0.0f}, // translation
+            {0.0f, 0.0f, 0.0f, 1.0f}, // rotation
+            {1.0f, 1.0f, 1.0f} // scale
+        };
     }
     else { log_error("Failed to add model to scene"); }
 }
@@ -112,7 +96,9 @@ void ac::scene_render(ac::scene *scene){
     {
         ClearBackground(BLACK);
         BeginMode3D(*camera);
-        DrawCube({ 0.0f, 0.0f, 0.0f }, 2.0f, 2.0f, 2.0f, RED);
+        for (ac::model& model : scene->models){
+            ac::model_render(&model);
+        }
         DrawGrid(10, 1.0f);
         EndMode3D();
     }
@@ -133,7 +119,29 @@ Camera *ac::scene_get_active_camera(ac::scene *scene){
     return NULL;
 }
 
-void ac::model_render(ac::model *model){
+Model *ac::model_load(const std::string &path, const b8 root_path){
+    const std::string& models_path = ac::config_get_root_path() + (root_path ? "" : ac::config_get_models_path()) + path;
+    ac::engine* engine = ac::engine_get_instance();
+    Model* model = nullptr;
+    for (ac::model_loaded& model_loaded : ac::engine_get_instance()->models_pool){
+        if (model_loaded.path == models_path && model_loaded.model.meshCount > 0){
+            model = &model_loaded.model;
+        }
+    }
+    if (!model)
+    {
+        log_info("Model not found, loading model");
+        ac::model_loaded* model_loaded = ac::push_back(&engine->models_pool);
+        if (!model_loaded) { log_error("Failed to add model to the pool"); return NULL; }
+        model_loaded->model = LoadModel(models_path.c_str());
+        model_loaded->path = models_path;
+        model = &model_loaded->model;
+    }
+    return model;
+}
+
+void ac::model_render(ac::model *model)
+{
     if(!model) { log_error("Cannot render, model is NULL"); return; }
     if(!model->model) { log_error("Cannot render, rlmodel is NULL"); return; }
     for (i32 i = 0; i < model->model->meshCount; i++){
@@ -161,6 +169,25 @@ void ac::model_render_instances(ac::model *model, Matrix *transforms, const i32 
     for (i32 i = 0; i < model->model->meshCount; i++){
         DrawMeshInstanced(model->model->meshes[i], model->model->materials[model->model->meshMaterial[i]], transforms, count);
     }
+}
+
+Material *ac::material_load(const std::string &vertex, const std::string &fragment)
+{
+    const std::string& shaders_path = ac::config_get_root_path() + ac::config_get_shaders_path();
+    const std::string& vertex_path = shaders_path + vertex;
+    const std::string& fragment_path = shaders_path + fragment;
+    ac::engine* engine = ac::engine_get_instance();
+    ac::material_loaded* material = ac::push_back(&engine->materials_pool);
+    if(!material) { log_error("Failed to add material to the pool"); return nullptr; }
+
+    material->material = LoadMaterialDefault();
+    if (IsFileExtension(vertex_path.c_str(), ".glsl") && IsFileExtension(fragment_path.c_str(), ".glsl")){
+        Shader shader = LoadShader(vertex_path.c_str(), fragment_path.c_str());
+        material->material.shader = shader;
+        material->vertex = vertex_path;
+        material->fragment = fragment_path;
+    }
+    return &material->material;
 }
 
 void ac::camera_set_position(ac::camera *camera, const Vector3 position){

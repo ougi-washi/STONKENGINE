@@ -13,8 +13,7 @@ i32 main(i32 argc, const char *argv[]){
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }).join();
     // ac::config_get_string
-    ac::scene_add_model(&scene, ac::engine_get_model("resources/models/monkey.obj"));
-
+    ac::scene_add_model(&scene, ac::model_load("cube.obj"));
 
     ac::camera* camera = ac::scene_make_new_camera(&scene);
     ac::camera_set_position(camera, {0.0f, 10.0f, 10.0f});

@@ -18,7 +18,6 @@ namespace ac
     }
 }
 
-
 #define AC_DECLARE_ARRAY(type, name) \
     typedef struct { \
         type* data; \
