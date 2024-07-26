@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-c8* ac_read_file_text(const c8 *path)
+c8* ac::read_file_text(const c8 *path)
 {
     FILE *file = fopen(path, "r");
     if (file == NULL) {

@@ -2,4 +2,7 @@
 #pragma once
 #include "types.h"
 
-c8* ac_read_file_text(const c8* path);
+namespace ac{
+    c8* read_file_text(const c8* path);
+} // namespace ac
+

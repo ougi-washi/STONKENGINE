@@ -3,8 +3,9 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <time.h>
+#include <string.h>
 
-void ac_log_message(const c8 *level, const c8 *file, const i32 line, const c8 *fmt, ...) {
+void ac::log_message(const c8 *level, const c8 *file, const i32 line, const c8 *fmt, ...) {
     va_list args;
     va_start(args, fmt);
 

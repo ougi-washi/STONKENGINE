@@ -39,7 +39,7 @@ setup_library(main_module ${SRC_DIR} "${MAIN_MODULE_INCLUDES}")
 target_link_libraries(main_module PUBLIC raylib json_lib)
 
 # Executable
-add_executable(${PROJECT_NAME} main.c)
+add_executable(${PROJECT_NAME} main.cpp)
 target_link_libraries(${PROJECT_NAME} PUBLIC main_module)
 set_target_properties(${PROJECT_NAME} PROPERTIES
                       RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/${BIN_DIR})

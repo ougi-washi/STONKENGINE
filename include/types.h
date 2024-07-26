@@ -69,16 +69,16 @@ typedef unsigned char   uc8;
 // #include <sys/syscall.h>
 // #endif
 
-typedef enum ac_flag
+typedef enum flag
 {
 	AC_INVALID			= 0x00,
 	AC_VALID			= 0x01,
 	AC_LOCKED			= 0x02,
 	AC_DIRTY			= 0x03,
 	AC_MAX				= 0x04,
-} ac_flag;
+} flag;
 
-#define AC_DECLARE_TYPE ac_flag obj_flag
+#define AC_DECLARE_TYPE flag obj_flag
 
 #define AC_IS_VALID(_obj)      	((_obj) && (u8)(_obj)->obj_flag >= AC_VALID && (u8)(_obj)->obj_flag < AC_MAX)
 #define AC_IS_INVALID(_obj)    	(!(&((_obj)->obj_flag)) || !AC_IS_VALID(_obj))
@@ -98,4 +98,4 @@ while (AC_IS_LOCKED(_obj) && loop_counter < 1000000000) { loop_counter++; };				
 AC_LOCK(_obj); } while(0)
 
 // This is a dummy type to avoid compilation errors when using void pointers
-typedef struct ac_flagged_struct { AC_DECLARE_TYPE; } ac_flagged_struct;
+typedef struct flagged_struct { AC_DECLARE_TYPE; } flagged_struct;
