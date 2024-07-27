@@ -23,11 +23,12 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
+    
       with:
-        submodules: true  # Initialize and update submodules
+        submodules: true
 
-    - name: Checkout submodules
-      run: git submodule update --init --recursive
+    - name: Print directory structure
+      run: ls -R
 
     - name: Install CMake
       run: sudo apt-get install -y cmake
@@ -35,11 +36,11 @@ jobs:
     - name: Create build directory
       run: mkdir build
 
-    - name: Run CMake
-      run: cmake -S . -B build
-
-    - name: Build the project
-      run: cmake --build build
+    - name: Navigate to build directory and run CMake
+      run: |
+        cd build
+        cmake ..
+        cmake --build .
 
     - name: Run the executable
-      run: bin/AbstractCity
+      run: ../bin/AbstractCity
