@@ -26,7 +26,7 @@ jobs:
       with:
         submodules: true  # Initialize and update submodules
 
-     - name: Checkout submodules
+    - name: Checkout submodules
       run: git submodule update --init --recursive
 
     - name: Install CMake
