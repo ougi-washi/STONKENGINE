@@ -47,5 +47,5 @@ jobs:
         cmake ..
         cmake --build .
 
-    - name: Run the executable
-      run: ./bin/AbstractCity  # Adjust the path if necessary
+    ##- name: Run the executable
+    ##  run: ./bin/AbstractCity
