@@ -1,0 +1,11 @@
+{
+    "name": "sample_material_001",
+    "vertex": "basic.vert",
+    "fragment": "basic.frag",
+    "uniforms": {
+        "u_color": {
+            "type": "vec3",
+            "value": [1, 0, 0]
+        }
+    }
+}

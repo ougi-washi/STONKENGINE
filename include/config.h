@@ -52,6 +52,7 @@ namespace ac{
     json config_get_paths();
     json config_get_assets_paths();
     std::string config_get_root_path();
+    std::string config_get_scenes_path();
     std::string config_get_models_path();
     std::string config_get_shaders_path();
     std::string config_get_textures_path();

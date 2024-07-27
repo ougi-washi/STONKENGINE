@@ -1,7 +1,7 @@
 {
   "window": {
-    "width": 800,
-    "height": 600,
+    "width": 1900,
+    "height": 1080,
     "name": "Abstract City"
   },
   "render": {
@@ -10,7 +10,9 @@
   "paths": {
     "root": "../",
     "assets": {
+      "scenes": "assets/scenes/",
       "models": "assets/models/",
+      "materials": "assets/materials/",
       "textures": "assets/textures/",
       "sounds": "assets/sounds/",
       "shaders": "assets/shaders/",

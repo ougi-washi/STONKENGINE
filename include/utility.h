@@ -4,6 +4,6 @@
 #include <string>
 
 namespace ac{
-    std::string read_file_text(const std::string& path);
+    std::string read_file(const std::string& path);
 } // namespace ac
 

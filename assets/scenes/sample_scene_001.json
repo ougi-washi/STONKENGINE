@@ -1,0 +1,30 @@
+{
+    "name": "sample_scene",
+    "objects": [
+        {
+            "name": "camera_001",
+            "type": "camera",
+            "position": [5, 5, 5],
+            "target": [0, 0, 0],
+            "up": [0, 1, 0],
+            "fov": 45,
+            "is_active": true
+        },
+        {
+            "name": "light_001",
+            "type": "light",
+            "position": [0, 0, 0],
+            "color": [1, 1, 1],
+            "intensity": 1
+        },
+        {
+            "name": "cube_001",
+            "type": "model",
+            "path": "cube.obj",
+            "materials": ["sample_material_001.json"],
+            "position": [0, 0, 0],
+            "rotation": [0, 0, 0],
+            "scale": [1, 1, 1]
+        }
+    ]
+}

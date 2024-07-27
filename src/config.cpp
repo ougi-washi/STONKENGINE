@@ -28,6 +28,16 @@ std::string ac::config_get_root_path()
     return paths["root"];
 }
 
+std::string ac::config_get_scenes_path()
+{
+    json paths = ac::config_get_assets_paths();
+    if (paths.empty()) {
+        log_error("Could not get scene path, paths json is empty");
+        return std::string();
+    }
+    return paths["scenes"];
+}
+
 std::string ac::config_get_models_path(){
     json paths = ac::config_get_assets_paths();
     if (paths.empty()) {
