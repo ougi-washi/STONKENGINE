@@ -40,5 +40,5 @@ jobs:
 
     - name: Run the executable with Xvfb
       run: |
-        xvfb-run ./build/bin/AbstractCity
+        xvfb-run ../bin/AbstractCity
 
