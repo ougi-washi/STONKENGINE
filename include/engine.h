@@ -7,46 +7,46 @@
 #include <vector>
 
 namespace ac{
-    typedef struct model{
+    struct model{
         Model* model;
         Transform transform; // world transform
-    } model;
+    };
 
     
-    typedef struct camera {
+    struct camera {
         Camera camera;
         b8 is_active;
-    }camera;
+    };
 
-    typedef struct light {
+    struct light {
         Transform transform;
         Color color;
         f32 intensity;
         f32 radius;
-    }light;
+    };
 
-    typedef struct scene {
+    struct scene {
         std::vector<model> models = {};
         std::vector<light> lights = {};
         std::vector<camera> cameras = {};
-    } scene;
+    };
 
-    typedef struct model_loaded {
+    struct model_loaded {
         std::string path = "";
         Model model;
-    }model_loaded;
+    };
 
-    typedef struct material_loaded {
+    struct material_loaded {
         std::string vertex = "";
         std::string fragment = "";
         Material material;
-    }material_loaded;
+    };
 
-    typedef struct engine {
-        scene scene;
+    struct engine {
+        scene scenes[1] = {};
         std::vector<model_loaded> models_pool = {};
         std::vector<material_loaded> materials_pool = {};
-    } engine;
+    };
 
     // engine
     void engine_start();

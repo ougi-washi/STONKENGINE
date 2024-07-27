@@ -107,7 +107,7 @@ void ac::scene_render(ac::scene *scene){
 
 ac::scene *ac::scene_get_active(){
     // currently only one scene is supported
-    ac::scene* scene = &ac::engine_get_instance()->scene;
+    ac::scene* scene = &ac::engine_get_instance()->scenes[0];
     return scene;
 }
 
