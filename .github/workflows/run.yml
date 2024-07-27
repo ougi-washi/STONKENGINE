@@ -23,6 +23,9 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
+      with:
+        submodules: true  # Initialize and update submodules
+
 
     - name: Install CMake
       run: sudo apt-get install -y cmake
