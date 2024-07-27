@@ -23,15 +23,17 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
-    
       with:
         submodules: true
 
     - name: Print directory structure
       run: ls -R
 
-    - name: Install CMake
-      run: sudo apt-get install -y cmake
+    - name: Install Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake
+        sudo apt-get install -y libwayland-dev libx11-dev libglfw3-dev
 
     - name: Create build directory
       run: mkdir build
@@ -43,4 +45,4 @@ jobs:
         cmake --build .
 
     - name: Run the executable
-      run: ../bin/AbstractCity
+      run: ./bin/AbstractCity  # Adjust the path if necessary
