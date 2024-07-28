@@ -18,6 +18,7 @@ namespace ac{
 
     struct camera {
         Camera camera;
+        f32 speed;
         b8 is_active;
     };
 
@@ -53,11 +54,12 @@ namespace ac{
     
     // engine
     void engine_start();
-    b8 engine_should_loop();
+    const b8 engine_should_loop();
     void engine_end();
     engine* engine_get_instance();
     std::vector<model>* engine_get_models_pool();
     void engine_process_input();
+    const f32 engine_get_delta_time();
     // input
     void input_add_map(const input_map& input_map);
     void input_process();
@@ -67,9 +69,9 @@ namespace ac{
     void scene_render(scene* scene);
     ac::scene* scene_get_active();
     void scene_add_model(scene* scene, ac::model* model);
-    void scene_add_camera(scene* scene, Camera camera, const b8 is_active);
-    camera* scene_make_new_camera(scene* scene);
-    Camera* scene_get_active_camera(scene* scene);
+    void scene_add_camera(scene* scene, Camera camera, const f32 speed, const b8 is_active);
+    ac::camera* scene_make_new_camera(scene* scene);
+    ac::camera* scene_get_active_camera(scene* scene);
     // model
     ac::model* model_load(const json &model_json);
     ac::model* model_load(const std::string& path);
@@ -89,9 +91,8 @@ namespace ac{
     i32 material_set_matrix(Material* material, const Matrix& value, const std::string& uniform_name);
     i32 material_set_texture(Material* material, const Texture2D& texture, const std::string& uniform_name);
     // camera
-    void camera_move(camera* camera, const Vector3& offset, const b8 move_target);
-    void camera_move(Camera* camera, const Vector3& offset, const b8 move_target);
-    void camera_rotate(camera* camera, const Vector3& offset);
+    void camera_move(camera* camera, const Vector3& delta, const b8 move_target);
+    void camera_rotate(camera* camera, const Vector3& delta);
     void camera_set_position(camera* camera, const Vector3& position);
     void camera_set_target(camera* camera, const Vector3& target);
     void camera_set_fovy(camera* camera, const f32 fovy);

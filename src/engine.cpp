@@ -32,7 +32,7 @@ void ac::engine_start(){
 	rlEnableBackfaceCulling();
 }
 
-b8 ac::engine_should_loop(){
+const b8 ac::engine_should_loop(){
     // Check if the escape key is pressed to exit the program (TODO: fix this)
     return !WindowShouldClose();
 }
@@ -66,6 +66,10 @@ std::vector<ac::model>* ac::engine_get_models_pool(){
 void ac::engine_process_input(){
     ac::engine* engine = ac::engine_get_instance();
     ac::input_process();
+}
+
+const f32 ac::engine_get_delta_time(){
+    return GetFrameTime();
 }
 
 void ac::input_add_map(const ac::input_map &input_map){
@@ -189,8 +193,9 @@ void ac::scene_load(ac::scene *scene, const std::string &path)
             const Vector3& position = {object["position"][0], object["position"][1], object["position"][2]};
             const Vector3& target = {object["target"][0], object["target"][1], object["target"][2]};
             const Vector3& up = (object.contains("up") ? Vector3{object["up"][0], object["up"][1], object["up"][2]} : Vector3{0.0f, 1.0f, 0.0f});
-            f32 fovy = object.contains("fovy") ? (f32)object["fovy"] : 45.0f;
-            b8 is_active = object.contains("is_active") ? (b8)object["is_active"] : false;
+            const f32 fovy = object.contains("fovy") ? (f32)object["fovy"] : 45.0f;
+            const b8 is_active = object.contains("is_active") ? (b8)object["is_active"] : false;
+            const f32 speed = object.contains("speed") ? (f32)object["speed"] : 1.0f;            
 
             ac::scene_add_camera(scene, {
                 position,
@@ -198,7 +203,7 @@ void ac::scene_load(ac::scene *scene, const std::string &path)
                 up,
                 fovy,
                 CAMERA_PERSPECTIVE
-            }, is_active);
+            }, speed, is_active);
         }
     }
 }
@@ -214,12 +219,13 @@ void ac::scene_add_model(ac::scene *scene, ac::model* model){
     else { log_error("Failed to add model to scene"); }
 }
 
-void ac::scene_add_camera(ac::scene *scene, Camera camera, const b8 is_active){
+void ac::scene_add_camera(ac::scene *scene, Camera camera, const f32 speed, const b8 is_active){
     // edit json instead of adding camera directly
     if(!scene) { log_error("Scene is NULL"); return; }
     ac::camera* scene_camera = ac::push_back(&scene->cameras);
     if(scene_camera) {
         scene_camera->camera = camera;
+        scene_camera->speed = speed;
         ac::camera_set_active(scene_camera, is_active);
     }
     else { log_error("Failed to add camera to scene"); }
@@ -245,13 +251,13 @@ ac::camera *ac::scene_make_new_camera(ac::scene *scene){
 
 void ac::scene_render(ac::scene *scene){
     if(!scene) { log_error("Cannot render, scene is NULL"); return; }
-    Camera* camera = ac::scene_get_active_camera(scene);
+    ac::camera* camera = ac::scene_get_active_camera(scene);
     if (!camera) { log_error("Cannot render, camera is NULL"); return; }
 
     BeginDrawing();
     {
         ClearBackground(BLACK);
-        BeginMode3D(*camera);
+        BeginMode3D(camera->camera);
         for (ac::model& model : scene->models){
             ac::model_render(&model);
         }
@@ -267,10 +273,10 @@ ac::scene *ac::scene_get_active(){
     return scene;
 }
 
-Camera *ac::scene_get_active_camera(ac::scene *scene){
+ac::camera *ac::scene_get_active_camera(ac::scene *scene){
     if(!scene) { log_error("Cannot get active camera, scene is NULL"); return NULL; }
     for (ac::camera& camera : scene->cameras){
-        if(camera.is_active) { return &camera.camera; }
+        if(camera.is_active) { return &camera; }
     }
     return NULL;
 }
@@ -450,24 +456,18 @@ i32 ac::material_set_texture(Material *material, const Texture2D &texture, const
     return slot;
 }
 
-void ac::camera_move(camera *camera, const Vector3 &offset, const b8 move_target){
+void ac::camera_move(ac::camera *camera, const Vector3 &delta, const b8 move_target){
     if (!camera) { log_error("Cannot move camera, camera is NULL"); return; }
+    const Vector3 offset = Vector3Scale(delta, camera->speed);
     camera->camera.position = Vector3Add(camera->camera.position, offset);
     if (move_target){
         camera->camera.target = Vector3Add(camera->camera.target, offset);
     }
 }
 
-void ac::camera_move(Camera *camera, const Vector3 &offset, const b8 move_target){
-    if (!camera) { log_error("Cannot move camera, camera is NULL"); return; }
-    camera->position = Vector3Add(camera->position, offset);
-    if (move_target){
-        camera->target = Vector3Add(camera->target, offset);
-    }
-}
-
-void ac::camera_rotate(ac::camera *camera, const Vector3 &offset){
+void ac::camera_rotate(ac::camera *camera, const Vector3 &delta){
     if (!camera) { log_error("Cannot rotate camera, camera is NULL"); return; }
+    const Vector3 offset = Vector3Scale(delta, camera->speed);
     camera->camera.position = Vector3RotateByQuaternion(camera->camera.position, QuaternionFromEuler(offset.x, offset.y, offset.z));
     camera->camera.target = Vector3RotateByQuaternion(camera->camera.target, QuaternionFromEuler(offset.x, offset.y, offset.z));
 }
