@@ -58,7 +58,6 @@ namespace ac{
     engine* engine_get_instance();
     std::vector<model>* engine_get_models_pool();
     void engine_process_input();
-
     // input
     void input_add_map(const input_map& input_map);
     void input_process();
@@ -90,6 +89,9 @@ namespace ac{
     i32 material_set_matrix(Material* material, const Matrix& value, const std::string& uniform_name);
     i32 material_set_texture(Material* material, const Texture2D& texture, const std::string& uniform_name);
     // camera
+    void camera_move(camera* camera, const Vector3& offset, const b8 move_target);
+    void camera_move(Camera* camera, const Vector3& offset, const b8 move_target);
+    void camera_rotate(camera* camera, const Vector3& offset);
     void camera_set_position(camera* camera, const Vector3& position);
     void camera_set_target(camera* camera, const Vector3& target);
     void camera_set_fovy(camera* camera, const f32 fovy);
@@ -97,7 +99,6 @@ namespace ac{
     void camera_set_position(Camera* camera, const Vector3& position);
     void camera_set_target(Camera* camera, const Vector3& target);
     void camera_set_fovy(Camera* camera, const f32 fovy);
-    
     // transform
     void transform_set_location(Matrix& transform, const Vector3& location);
     void transform_set_rotation(Matrix& transform, const Vector3& rotation);

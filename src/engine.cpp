@@ -450,7 +450,30 @@ i32 ac::material_set_texture(Material *material, const Texture2D &texture, const
     return slot;
 }
 
-void ac::camera_set_position(ac::camera *camera, const Vector3& position){
+void ac::camera_move(camera *camera, const Vector3 &offset, const b8 move_target){
+    if (!camera) { log_error("Cannot move camera, camera is NULL"); return; }
+    camera->camera.position = Vector3Add(camera->camera.position, offset);
+    if (move_target){
+        camera->camera.target = Vector3Add(camera->camera.target, offset);
+    }
+}
+
+void ac::camera_move(Camera *camera, const Vector3 &offset, const b8 move_target){
+    if (!camera) { log_error("Cannot move camera, camera is NULL"); return; }
+    camera->position = Vector3Add(camera->position, offset);
+    if (move_target){
+        camera->target = Vector3Add(camera->target, offset);
+    }
+}
+
+void ac::camera_rotate(ac::camera *camera, const Vector3 &offset){
+    if (!camera) { log_error("Cannot rotate camera, camera is NULL"); return; }
+    camera->camera.position = Vector3RotateByQuaternion(camera->camera.position, QuaternionFromEuler(offset.x, offset.y, offset.z));
+    camera->camera.target = Vector3RotateByQuaternion(camera->camera.target, QuaternionFromEuler(offset.x, offset.y, offset.z));
+}
+
+void ac::camera_set_position(ac::camera *camera, const Vector3 &position)
+{
     if (!camera) { log_error("Cannot set camera position, camera is NULL"); return; }
     camera->camera.position = position;
 }
