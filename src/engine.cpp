@@ -458,16 +458,22 @@ i32 ac::material_set_texture(Material *material, const Texture2D &texture, const
 
 void ac::camera_move(ac::camera *camera, const Vector3 &delta, const b8 move_target){
     if (!camera) { log_error("Cannot move camera, camera is NULL"); return; }
-    const Vector3 offset = Vector3Scale(delta, camera->speed);
-    camera->camera.position = Vector3Add(camera->camera.position, offset);
+    const Vector3 front = Vector3Normalize(camera->camera.target - camera->camera.position);
+    const Vector3 right = Vector3Normalize(Vector3CrossProduct(front, camera->camera.up));
+    const Vector3 up = Vector3Normalize(Vector3CrossProduct(right, front));
+    const Vector3 front_offset = (front.x > 0.1 || front.y > 0.1 || front.z > 0.1 ) ? Vector3Scale(front, delta.z) : Vector3();
+    Vector3 offset = front_offset + Vector3Scale(right, delta.x);
+    offset.y = Vector3DotProduct(up, delta);
+    offset *= camera->speed;
+    camera->camera.position = camera->camera.position + offset;
     if (move_target){
-        camera->camera.target = Vector3Add(camera->camera.target, offset);
+        camera->camera.target = camera->camera.target + offset;
     }
 }
 
 void ac::camera_rotate(ac::camera *camera, const Vector3 &delta){
     if (!camera) { log_error("Cannot rotate camera, camera is NULL"); return; }
-    const Vector3 offset = Vector3Scale(delta, camera->speed);
+    const Vector3 offset = delta * camera->speed;
     camera->camera.position = Vector3RotateByQuaternion(camera->camera.position, QuaternionFromEuler(offset.x, offset.y, offset.z));
     camera->camera.target = Vector3RotateByQuaternion(camera->camera.target, QuaternionFromEuler(offset.x, offset.y, offset.z));
 }

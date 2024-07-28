@@ -8,37 +8,38 @@
 void move_camera_right(){
     ac::scene* scene = ac::scene_get_active();
     ac::camera* camera = ac::scene_get_active_camera(scene);
-    ac::camera_move(camera, {0.1, 0.f, 0.f}, false);
+    ac::camera_move(camera, {1., 0.f, 0.f}, false);
+
 }
 
 void move_camera_left(){
     ac::scene* scene = ac::scene_get_active();
     ac::camera* camera = ac::scene_get_active_camera(scene);
-    ac::camera_move(camera, {-.1f, 0.f, 0.f}, false);
+    ac::camera_move(camera, {-1.f, 0.f, 0.f}, false);
 }
 
 void move_camera_forward(){
     ac::scene* scene = ac::scene_get_active();
     ac::camera* camera = ac::scene_get_active_camera(scene);
-    ac::camera_move(camera, {0.f, 0.f, -.1f}, false);
+    ac::camera_move(camera, {0.f, 0.f, 1.f}, false);
 }
 
 void move_camera_backward(){
     ac::scene* scene = ac::scene_get_active();
     ac::camera* camera = ac::scene_get_active_camera(scene);
-    ac::camera_move(camera, {0.f, 0.f, .1f}, false);
+    ac::camera_move(camera, {0.f, 0.f, -1.f}, false);
 }
 
 void move_camera_up(){
     ac::scene* scene = ac::scene_get_active();
     ac::camera* camera = ac::scene_get_active_camera(scene);
-    ac::camera_move(camera, {0.f, 0.1f, 0.f}, false);
+    ac::camera_move(camera, {0.f, 1.f, 0.f}, false);
 }
 
 void move_camera_down(){
     ac::scene* scene = ac::scene_get_active();
     ac::camera* camera = ac::scene_get_active_camera(scene);
-    ac::camera_move(camera, {0.f, -0.1f, 0.f}, false);
+    ac::camera_move(camera, {0.f, -1.f, 0.f}, false);
 }
 
 i32 main(i32 argc, const char *argv[]){
