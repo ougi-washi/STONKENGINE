@@ -21,6 +21,7 @@ void ac::engine_start(){
     const i32 target_fps = ac::config_render_get_target_fps();
     // init raylib
     InitWindow(window_width, window_height, window_name.c_str());
+    SetExitKey(KEY_NULL);
     SetConfigFlags(FLAG_VSYNC_HINT);
 	SetConfigFlags(FLAG_MSAA_4X_HINT);
 	SetConfigFlags(FLAG_WINDOW_RESIZABLE);
@@ -30,10 +31,13 @@ void ac::engine_start(){
 	rlEnableColorBlend();
 	rlSetBlendMode(RL_BLEND_ALPHA);
 	rlEnableBackfaceCulling();
+#ifdef AC_EDITOR_MODE
+    editor_init();
+#endif // AC_EDITOR_MODE
 }
 
 const b8 ac::engine_should_loop(){
-    // Check if the escape key is pressed to exit the program (TODO: fix this)
+
     return !WindowShouldClose();
 }
 
@@ -261,7 +265,9 @@ void ac::scene_render(ac::scene *scene){
         for (ac::model& model : scene->models){
             ac::model_render(&model);
         }
-        DrawGrid(10, 1.0f);
+#ifdef AC_EDITOR_MODE
+    editor_render_3d(camera);
+#endif //AC_EDITOR_MODE
         EndMode3D();
     }
     EndDrawing();
@@ -279,6 +285,104 @@ ac::camera *ac::scene_get_active_camera(ac::scene *scene){
         if(camera.is_active) { return &camera; }
     }
     return NULL;
+}
+
+ac::camera *ac::scene_get_active_camera(){
+    ac::scene* scene = ac::scene_get_active();
+    return ac::scene_get_active_camera(scene);
+}
+
+ac::scene_2d *ac::scene_2d_make_new(){
+    ac::engine* engine = ac::engine_get_instance();
+    return ac::push_back(&engine->scenes_2d);
+}
+
+void ac::scene_2d_render(scene_2d *scene){
+    if(!scene) { log_error("Cannot render, scene is NULL"); return; }
+    RenderTexture2D render_texture = LoadRenderTexture(GetScreenWidth(), GetScreenHeight());
+    BeginTextureMode(render_texture);
+    {
+        // ClearBackground(RAYWHITE);
+        for (object_2d& object : scene->objects){
+            object.shader = LoadShader(object.vertex.c_str(), object.fragment.c_str());
+            for (sz i = 0; i < object.textures.size(); ++i) {
+                std::string uniform_name = "texture" + std::to_string(i);
+                SetShaderValueTexture(object.shader, GetShaderLocation(object.shader, uniform_name.c_str()), object.textures[i]);
+            }
+            BeginShaderMode(object.shader);
+            {
+                DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), RED);
+            }
+            EndShaderMode();
+            for (const text& text : object.texts){
+                DrawTextEx(text.font, text.string.c_str(), { text.position.x, text.position.y }, text.fontSize, text.spacing, text.tint);
+            }
+        }
+    }
+    EndTextureMode();
+
+    BeginDrawing();
+    {
+        // ClearBackground(RAYWHITE);
+        DrawTexture(render_texture.texture, 0, 0, WHITE);
+    }
+    EndDrawing();
+    UnloadRenderTexture(render_texture);
+}
+
+void ac::scene_2d_load(scene_2d *scene, const std::string &path){
+    if(!scene) { log_error("Cannot load scene, scene is NULL"); return; }
+    const std::string& file_content = ac::read_file(ac::config_get_root_path() + ac::config_get_scenes_path() + path);
+    if (file_content.empty()) { log_error("Could not load scene, file is empty"); return; }
+    const json& scene_json = json::parse(file_content);
+    if (scene_json.empty()) { log_error("Could not load scene, json is empty"); return; }
+
+    if (!scene_json.contains("objects")) { log_error("Could not load scene, objects not found"); return; }
+    const std::vector<json>& objects = scene_json["objects"];
+
+    for (const json& object : objects){
+        ac::object_2d* object_2d = ac::push_back(&scene->objects);
+        if (!object_2d) { log_error("Failed to add object_2d to scene"); continue; }
+        if (!object.contains("fragment")) { log_error("Could not load scene, object_2d fragment not found"); continue; }
+        if (!object.contains("vertex")) { log_error("Could not load scene, object_2d vertex not found"); continue; }
+        object_2d->fragment = object["fragment"];
+        object_2d->vertex = object["vertex"];
+        if (object.contains("textures")){
+            const std::vector<json>& textures = object["textures"];
+            for (const json& texture : textures){
+                if (!texture.contains("path")) { log_error("Could not load scene, texture path not found"); continue; }
+                const std::string& texture_path = texture["path"];
+                object_2d->textures.push_back(LoadTexture(texture_path.c_str()));
+            }
+        }
+        if (object.contains("texts")){
+            const std::vector<json>& texts = object["texts"];
+            for (const json& text : texts){
+                if (!text.contains("text")) { log_error("Could not load scene, text not found"); continue; }
+                if (!text.contains("font")) { log_error("Could not load scene, font not found"); continue; }
+                if (!text.contains("position")) { log_error("Could not load scene, text position not found"); continue; }
+                if (!text.contains("fontSize")) { log_error("Could not load scene, text fontSize not found"); continue; }
+                if (!text.contains("spacing")) { log_error("Could not load scene, text spacing not found"); continue; }
+                if (!text.contains("tint")) { log_error("Could not load scene, text tint not found"); continue; }
+                const std::string& text_text = text["text"];
+                const std::string& text_font = text["font"];
+                const Vector2& text_position = {text["position"][0], text["position"][1]};
+                const f32 text_fontSize = text["fontSize"];
+                const f32 text_spacing = text["spacing"];
+                const Color text_tint = {text["tint"][0], text["tint"][1], text["tint"][2], text["tint"][3]};
+                ac::text* scene_text = ac::push_back(&object_2d->texts);
+                if (scene_text){
+                    scene_text->string = text_text;
+                    scene_text->font = LoadFont(text_font.c_str());
+                    scene_text->position = text_position;
+                    scene_text->fontSize = text_fontSize;
+                    scene_text->spacing = text_spacing;
+                    scene_text->tint = text_tint;
+                }
+                else { log_error("Failed to add text to object_2d"); }
+            }
+        }
+    }
 }
 
 ac::model* ac::model_load(const json &model_json){
@@ -392,23 +496,6 @@ void ac::model_set_material(model *model, Material *material, const i32 mesh_ind
     model->data.materials[mesh_index] = *material;
 }
 
-// Material *ac::material_load(const std::string &vertex, const std::string &fragment) {
-//     const std::string& shaders_path = ac::config_get_root_path() + ac::config_get_shaders_path();
-//     const std::string& vertex_path = shaders_path + vertex;
-//     const std::string& fragment_path = shaders_path + fragment;
-//     // ac::material_loaded* material = ac::push_back(ac::engine_get_materials_pool());
-//     if(!material) { log_error("Failed to add material to the pool"); return nullptr; }
-
-//     material->material = LoadMaterialDefault();
-//     if (IsFileExtension(vertex_path.c_str(), ".glsl") && IsFileExtension(fragment_path.c_str(), ".glsl")){
-//         Shader shader = LoadShader(vertex_path.c_str(), fragment_path.c_str());
-//         material->material.shader = shader;
-//         material->vertex = vertex_path;
-//         material->fragment = fragment_path;
-//     }
-//     return &material->material;
-// }
-
 void ac::material_load(Material &material, const std::string &vertex, const std::string &fragment){
     const std::string& shaders_path = ac::config_get_root_path() + ac::config_get_shaders_path();
     const std::string& vertex_path = shaders_path + vertex;
@@ -456,19 +543,24 @@ i32 ac::material_set_texture(Material *material, const Texture2D &texture, const
     return slot;
 }
 
-void ac::camera_move(ac::camera *camera, const Vector3 &delta, const b8 move_target){
+void ac::camera_move(ac::camera *camera, const Vector3 &delta){
     if (!camera) { log_error("Cannot move camera, camera is NULL"); return; }
     const Vector3 front = Vector3Normalize(camera->camera.target - camera->camera.position);
     const Vector3 right = Vector3Normalize(Vector3CrossProduct(front, camera->camera.up));
     const Vector3 up = Vector3Normalize(Vector3CrossProduct(right, front));
-    const Vector3 front_offset = (front.x > 0.1 || front.y > 0.1 || front.z > 0.1 ) ? Vector3Scale(front, delta.z) : Vector3();
+    const Vector3 front_offset = front * delta.z;
     Vector3 offset = front_offset + Vector3Scale(right, delta.x);
     offset.y = Vector3DotProduct(up, delta);
     offset *= camera->speed;
     camera->camera.position = camera->camera.position + offset;
-    if (move_target){
-        camera->camera.target = camera->camera.target + offset;
-    }
+    camera->camera.target = camera->camera.target + offset;
+}
+
+void ac::camera_rotate_around_target(ac::camera *camera, const Vector3 &delta){
+    if (!camera) { log_error("Cannot rotate camera, camera is NULL"); return; }
+    const Vector3 offset = delta * camera->speed;
+    camera->camera.position = Vector3RotateByQuaternion(camera->camera.position, QuaternionFromEuler(offset.x, offset.y, offset.z));
+    camera->camera.target = Vector3RotateByQuaternion(camera->camera.target, QuaternionFromEuler(offset.x, offset.y, offset.z));
 }
 
 void ac::camera_rotate(ac::camera *camera, const Vector3 &delta){
@@ -536,7 +628,21 @@ void ac::transform_set_scale(Matrix &transform, const Vector3 &scale){
     transform.m10 *= scale.z;
 }
 
-b8 ac::config_window_get_size(i32 *width, i32 *height){
+const Vector3 ac::transform_get_location(const Matrix &transform){
+    return {transform.m12, transform.m13, transform.m14};
+}
+
+const Vector3 ac::transform_get_rotation(const Matrix &transform){
+    Quaternion quaternion = {transform.m0, transform.m1, transform.m2, transform.m3};
+    return QuaternionToEuler(quaternion);
+}
+
+const Vector3 ac::transform_get_scale(const Matrix &transform){
+    return {transform.m0, transform.m5, transform.m10};
+}
+
+b8 ac::config_window_get_size(i32 *width, i32 *height)
+{
     const json& window_json = ac::config_get_value<json>("window");
     if (!window_json.contains("width")) { log_error("Could not find window width in config"); return false; }
     if (!window_json.contains("height")) { log_error("Could not find window height in config"); return false; }
@@ -559,4 +665,71 @@ const i32 ac::config_render_get_target_fps(){
     if (!render_json.contains("target_fps")) { log_error("Could not find target_fps in config"); return 60; }
     if (!render_json["target_fps"].is_number_integer()) { log_error("target_fps is not an integer"); return 60; }
     return render_json["target_fps"].get<i32>();
+}
+
+void ac::editor_init()
+{
+    struct input_functions_t {
+        static void move_camera_right(){
+            ac::camera* camera = ac::scene_get_active_camera();
+            ac::camera_move(camera, {1., 0.f, 0.f});
+        }
+
+        static void move_camera_left(){
+            ac::camera* camera = ac::scene_get_active_camera();
+            ac::camera_move(camera, {-1.f, 0.f, 0.f});
+        }
+
+        static void move_camera_forward(){
+            ac::camera* camera = ac::scene_get_active_camera();
+            ac::camera_move(camera, {0.f, 0.f, 1.f});
+        }
+
+        static void move_camera_backward(){
+            ac::camera* camera = ac::scene_get_active_camera();
+            ac::camera_move(camera, {0.f, 0.f, -1.f});
+        }
+
+        static void move_camera_up(){
+            ac::camera* camera = ac::scene_get_active_camera();
+            ac::camera_move(camera, {0.f, 1.f, 0.f});
+        }
+
+        static void move_camera_down(){
+            ac::camera* camera = ac::scene_get_active_camera();
+            ac::camera_move(camera, {0.f, -1.f, 0.f});
+        }
+        static void select_object(){
+            log_info("Selecting object");
+            ac::camera* camera = ac::scene_get_active_camera();
+        }
+    } input_functions;
+    // input
+    ac::input_add_map({{KEY_D}, {}, input_functions.move_camera_right});
+    ac::input_add_map({{KEY_A}, {}, input_functions.move_camera_left});
+    ac::input_add_map({{KEY_W}, {}, input_functions.move_camera_forward});
+    ac::input_add_map({{KEY_S}, {}, input_functions.move_camera_backward});
+    ac::input_add_map({{KEY_E}, {}, input_functions.move_camera_up});
+    ac::input_add_map({{KEY_Q}, {}, input_functions.move_camera_down});
+}
+
+void ac::editor_render_3d(ac::camera* camera){
+    if (!camera) { log_error("Cannot render editor, camera is NULL"); return; }
+    const Color& red_color = {255, 0, 0, 255};
+    DrawSphereWires(camera->camera.target, 0.02f, 6, 6, red_color);
+    DrawGrid(50, 1.f);
+    Ray res_ray = GetScreenToWorldRay({(f32)GetScreenWidth() / 2.f, (f32)GetScreenHeight() / 2.f}, camera->camera);
+    for (ac::model& ac_model : ac::scene_get_active()->models){
+        const Model& model = ac_model.data;
+        for (i32 i = 0; i < model.meshCount; i++){
+            const RayCollision& ray_collision =  GetRayCollisionMesh(res_ray, model.meshes[i], model.transform);
+            if (ray_collision.hit){
+                DrawModelWires(model, transform_get_location(model.transform), 1.01f, red_color);
+            }
+        }
+    }
+}
+
+void ac::editor_render_2d(){
+    DrawText(" - Editor Mode -", 10, 10, 20, {255, 0, 0, 255});
 }

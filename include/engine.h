@@ -35,6 +35,28 @@ namespace ac{
         std::vector<camera> cameras = {};
     };
 
+    struct text {
+        Font font;
+        std::string string;
+        Vector2 position;
+        float fontSize;
+        float spacing;
+        Color tint;
+    };
+
+    struct object_2d {
+        std::string fragment = "";
+        std::string vertex = "";
+        Shader shader;
+        std::vector<Texture2D> textures = {};
+        std::vector<text> texts = {};
+    };
+
+    struct scene_2d {
+        std::vector<object_2d> objects = {}; // order matters, these objects will be rendered in order the moment they are added
+        std::vector<RenderTexture2D> render_textures = {};  // Cached render textures as output from the objects, they will be rendered every frame
+    };
+
     struct input_map {
         std::vector<KeyboardKey> keyboard_keys = {}; // for now, default is pressed
         std::vector<MouseButton> mouse_buttons = {}; // for now, default is pressed
@@ -45,11 +67,22 @@ namespace ac{
         std::vector<input_map> input_maps = {};
     };
 
+    struct selection{
+        std::vector<i32> selected_models = {};
+        std::vector<i32> selected_cameras = {}; // TODO: Maybe it will be removed?
+        std::vector<i32> selected_lights = {};
+    };
+
+    struct editor{
+        b8 is_active = false;
+        selection selection = {};
+    };
+
     struct engine {
         std::vector<scene> scenes = {};
+        std::vector<scene_2d> scenes_2d = {};
         std::vector<model> models_pool = {};
         input_handler input = {};
-        // std::vector<material_loaded> materials_pool = {};
     };
     
     // engine
@@ -72,6 +105,11 @@ namespace ac{
     void scene_add_camera(scene* scene, Camera camera, const f32 speed, const b8 is_active);
     ac::camera* scene_make_new_camera(scene* scene);
     ac::camera* scene_get_active_camera(scene* scene);
+    ac::camera* scene_get_active_camera();
+    // 2D
+    ac::scene_2d* scene_2d_make_new();
+    void scene_2d_render(scene_2d* scene);
+    void scene_2d_load(scene_2d* scene, const std::string& path);
     // model
     ac::model* model_load(const json &model_json);
     ac::model* model_load(const std::string& path);
@@ -91,7 +129,8 @@ namespace ac{
     i32 material_set_matrix(Material* material, const Matrix& value, const std::string& uniform_name);
     i32 material_set_texture(Material* material, const Texture2D& texture, const std::string& uniform_name);
     // camera
-    void camera_move(camera* camera, const Vector3& delta, const b8 move_target);
+    void camera_move(camera* camera, const Vector3& delta);
+    void camera_rotate_around_target(camera* camera, const Vector3& delta);
     void camera_rotate(camera* camera, const Vector3& delta);
     void camera_set_position(camera* camera, const Vector3& position);
     void camera_set_target(camera* camera, const Vector3& target);
@@ -104,8 +143,17 @@ namespace ac{
     void transform_set_location(Matrix& transform, const Vector3& location);
     void transform_set_rotation(Matrix& transform, const Vector3& rotation);
     void transform_set_scale(Matrix& transform, const Vector3& scale);
+    const Vector3 transform_get_location(const Matrix& transform);
+    const Vector3 transform_get_rotation(const Matrix& transform);
+    const Vector3 transform_get_scale(const Matrix& transform);
+    // light
+    // ...
     //config
     b8 config_window_get_size(i32* width, i32* height);
     const std::string config_window_get_name();
     const i32 config_render_get_target_fps();
+    // editor
+    void editor_init();
+    void editor_render_3d(ac::camera* camera);
+    void editor_render_2d();
 }
