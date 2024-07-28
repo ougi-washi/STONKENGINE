@@ -34,10 +34,25 @@ namespace ac{
         std::vector<camera> cameras = {};
     };
 
+    struct mapped_keyboard_input {
+        KeyboardKey key;
+        void(*callback)();
+    };
+
+    struct mapped_mouse_input {
+        MouseButton key;
+        void(*callback)();
+    };
+
+    struct input_handler {
+        std::vector<mapped_keyboard_input> keyboard_inputs = {};
+        std::vector<mapped_mouse_input> mouse_inputs = {};
+    };
 
     struct engine {
         scene scenes[1] = {};
         std::vector<model> models_pool = {};
+        input_handler input = {};
         // std::vector<material_loaded> materials_pool = {};
     };
 
@@ -47,7 +62,8 @@ namespace ac{
     void engine_end();
     engine* engine_get_instance();
     std::vector<model>* engine_get_models_pool();
-    // std::vector<material_loaded>* engine_get_materials_pool();
+    void* engine_add_keyboard_input(const KeyboardKey key, void(*callback)());
+    void* engine_add_mouse_input(const MouseButton key, void(*callback)());
     // scene
     void scene_load(scene* scene, const std::string &path);
     void scene_render(scene* scene);
@@ -79,6 +95,10 @@ namespace ac{
     void camera_set_target(camera* camera, const Vector3& target);
     void camera_set_fovy(camera* camera, const f32 fovy);
     void camera_set_active(camera* camera, const b8 new_state);
+    void camera_set_position(Camera* camera, const Vector3& position);
+    void camera_set_target(Camera* camera, const Vector3& target);
+    void camera_set_fovy(Camera* camera, const f32 fovy);
+    
     // transform
     void transform_set_location(Matrix& transform, const Vector3& location);
     void transform_set_rotation(Matrix& transform, const Vector3& rotation);

@@ -33,6 +33,7 @@ void ac::engine_start(){
 }
 
 b8 ac::engine_should_loop(){
+    // Check if the escape key is pressed to exit the program (TODO: fix this)
     return !WindowShouldClose();
 }
 
@@ -43,17 +44,13 @@ void ac::engine_end(){
     std::vector<ac::model>* models_pool = ac::engine_get_models_pool();
     if (models_pool){
         for (ac::model& model : *models_pool){
+            for (i32 i = 0; i < model.data.materialCount; i++){
+                UnloadShader(model.data.materials[i].shader);
+            }
             UnloadModel(model.data); 
         }
         models_pool->clear();
     }
-    // std::vector<ac::material_loaded>* materials_pool = ac::engine_get_materials_pool();
-    // if (materials_pool){
-    //     for (ac::material_loaded& material_loaded : *materials_pool){
-    //         UnloadMaterial(material_loaded.material);
-    //     }
-    //     materials_pool->clear();
-    // }
     delete engine_instance;
 }
 
@@ -65,10 +62,6 @@ ac::engine *ac::engine_get_instance(){
 std::vector<ac::model>* ac::engine_get_models_pool(){
     return &ac::engine_get_instance()->models_pool;
 }
-
-// std::vector<ac::model> *ac::engine_get_materials_pool(){
-//     return &ac::engine_get_instance()->materials_pool;
-// }
 
 void material_load(Material& material, const json &material_json){
     if (!material_json.contains("vertex")) { log_error("Could not load material, vertex path not found"); return; }
@@ -435,6 +428,19 @@ void ac::camera_set_active(ac::camera *camera, const b8 new_state){
         camera.is_active = false;
     }
     camera->is_active = new_state;
+}
+
+void ac::camera_set_position(Camera* camera, const Vector3& position){
+    if (!camera) { log_error("Cannot set camera position, camera is NULL"); return; }
+    camera->position = position;
+}
+void ac::camera_set_target(Camera* camera, const Vector3& target){
+    if (!camera) { log_error("Cannot set camera target, camera is NULL"); return; }
+    camera->target = target;
+}
+void ac::camera_set_fovy(Camera* camera, const f32 fovy){
+    if (!camera) { log_error("Cannot set camera fovy, camera is NULL"); return; }
+    camera->fovy = fovy;
 }
 
 void ac::transform_set_location(Matrix &transform, const Vector3 &location){
