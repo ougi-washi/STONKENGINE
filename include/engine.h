@@ -34,37 +34,36 @@ namespace ac{
         std::vector<camera> cameras = {};
     };
 
-    struct mapped_keyboard_input {
-        KeyboardKey key;
-        void(*callback)();
-    };
-
-    struct mapped_mouse_input {
-        MouseButton key;
+    struct input_map {
+        std::vector<KeyboardKey> keyboard_keys = {}; // for now, default is pressed
+        std::vector<MouseButton> mouse_buttons = {}; // for now, default is pressed
         void(*callback)();
     };
 
     struct input_handler {
-        std::vector<mapped_keyboard_input> keyboard_inputs = {};
-        std::vector<mapped_mouse_input> mouse_inputs = {};
+        std::vector<input_map> input_maps = {};
     };
 
     struct engine {
-        scene scenes[1] = {};
+        std::vector<scene> scenes = {};
         std::vector<model> models_pool = {};
         input_handler input = {};
         // std::vector<material_loaded> materials_pool = {};
     };
-
+    
     // engine
     void engine_start();
     b8 engine_should_loop();
     void engine_end();
     engine* engine_get_instance();
     std::vector<model>* engine_get_models_pool();
-    void* engine_add_keyboard_input(const KeyboardKey key, void(*callback)());
-    void* engine_add_mouse_input(const MouseButton key, void(*callback)());
+    void engine_process_input();
+
+    // input
+    void input_add_map(const input_map& input_map);
+    void input_process();
     // scene
+    ac::scene* scene_make_new();
     void scene_load(scene* scene, const std::string &path);
     void scene_render(scene* scene);
     ac::scene* scene_get_active();

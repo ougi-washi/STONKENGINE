@@ -63,6 +63,44 @@ std::vector<ac::model>* ac::engine_get_models_pool(){
     return &ac::engine_get_instance()->models_pool;
 }
 
+void ac::engine_process_input(){
+    ac::engine* engine = ac::engine_get_instance();
+    ac::input_process();
+}
+
+void ac::input_add_map(const ac::input_map &input_map){
+    ac::engine* engine = ac::engine_get_instance();
+    ac::input_map* input = ac::push_back(&engine->input.input_maps);
+    if(input) {
+        *input = input_map;
+    }
+    else { log_error("Failed to add input map"); }
+}
+
+void ac::input_process(){
+    ac::engine* engine = ac::engine_get_instance();
+    for (ac::input_map& input_map : engine->input.input_maps){
+        if (input_map.keyboard_keys.empty() && input_map.mouse_buttons.empty()) { 
+            log_error("Cannot process input, no keys or buttons found"); continue; 
+        }  
+        b8 valid_keyboard_keys = true;
+        for (const i32& key : input_map.keyboard_keys){
+            if (!IsKeyDown(key)){
+                valid_keyboard_keys = false;
+            }
+        }
+        b8 valid_mouse_buttons = true;
+        for (const i32& button : input_map.mouse_buttons){
+            if (!IsMouseButtonDown(button)){
+                valid_mouse_buttons = false;
+            }
+        }
+        if (valid_keyboard_keys && valid_mouse_buttons){
+            input_map.callback();
+        }
+    }
+}
+
 void material_load(Material& material, const json &material_json){
     if (!material_json.contains("vertex")) { log_error("Could not load material, vertex path not found"); return; }
     if (!material_json.contains("fragment")) { log_error("Could not load material, fragment path not found"); return; }
@@ -116,7 +154,13 @@ void material_load(Material& material, const json &material_json){
     }
 }
 
-void ac::scene_load(ac::scene* scene, const std::string &path){
+ac::scene *ac::scene_make_new(){
+    ac::engine* engine = ac::engine_get_instance();
+    return ac::push_back(&engine->scenes);
+}
+
+void ac::scene_load(ac::scene *scene, const std::string &path)
+{
     if(!scene) { log_error("Cannot load scene, scene is NULL"); return; }
     const std::string& file_content = ac::read_file(ac::config_get_root_path() + ac::config_get_scenes_path() + path);
     if (file_content.empty()) { log_error("Could not load scene, file is empty"); return; }

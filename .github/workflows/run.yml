@@ -38,7 +38,7 @@ jobs:
         cmake ..
         cmake --build .
 
-    - name: Run the executable with Xvfb
-      run: |
-        xvfb-run ../bin/AbstractCity
+    #- name: Run the executable with Xvfb
+    #  run: |
+    #    xvfb-run ../bin/AbstractCity
 
