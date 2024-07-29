@@ -74,7 +74,7 @@ namespace ac{
         std::vector<input_map> input_maps = {};
     };
 
-    struct selection{
+    struct selection_handler{
         std::vector<i32> selected_models = {};
         std::vector<i32> selected_cameras = {}; // TODO: Maybe it will be removed?
         std::vector<i32> selected_lights = {};
@@ -82,7 +82,7 @@ namespace ac{
 
     struct editor{
         b8 is_active = false;
-        selection selection = {};
+        ac::selection_handler selection = {};
     };
 
     typedef std::function<void(void)> command; 
