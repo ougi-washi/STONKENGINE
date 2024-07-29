@@ -8,6 +8,9 @@
 #include "defines.h"
 #include "rlgl.h"
 
+#define RAYGUI_IMPLEMENTATION
+#include "raygui.h"
+
 ac::engine* engine_instance = NULL;
 
 void ac::engine_start(){

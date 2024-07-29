@@ -38,11 +38,13 @@ find_package(Threads REQUIRED)
 # RAYLIB
 message(STATUS "Adding Raylib library")
 add_subdirectory(${LIB_DIR}/raylib)
+message(STATUS "Adding Raygui library")
+add_subdirectory(${LIB_DIR}/raygui/projects/CMake)
 
 # Main module
 set(MAIN_MODULE_INCLUDES ${PROJECT_SOURCE_DIR}/${INC_DIR} ${PROJECT_SOURCE_DIR}/${LIB_DIR})
 setup_library(main_module ${SRC_DIR} "${MAIN_MODULE_INCLUDES}")
-target_link_libraries(main_module PUBLIC raylib)
+target_link_libraries(main_module PUBLIC raylib raygui)
 
 # Executable
 add_executable(${PROJECT_NAME} main.cpp)
