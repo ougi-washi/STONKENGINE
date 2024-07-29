@@ -59,6 +59,11 @@ namespace ac{
         std::vector<RenderTexture2D> render_textures = {};  // Cached render textures as output from the objects, they will be rendered every frame
     };
 
+    struct scene_2d_element {
+        object_2d* object;
+        RenderTexture2D* render_texture;
+    };
+
     struct input_map {
         std::vector<KeyboardKey> keyboard_keys = {}; // for now, default is pressed
         std::vector<MouseButton> mouse_buttons = {}; // for now, default is pressed
@@ -120,8 +125,10 @@ namespace ac{
     void scene_2d_render(scene_2d* scene);
     void scene_2d_load(scene_2d* scene, const std::string& path);
     ac::scene_2d* scene_2d_get_active();
-    void scene_add_object_2d(scene_2d* scene, object_2d* object);
-    object_2d* scene_2d_make_new_object(scene_2d* scene);
+    scene_2d_element scene_2d_make_new_object(scene_2d* scene);
+    void scene_2d_element_bake(scene_2d_element& element);
+    void scene_2d_bake_all(scene_2d* scene);
+    void scene_2d_bake(object_2d* object, RenderTexture2D* render_texture);
     // model
     ac::model* model_load(const json &model_json);
     ac::model* model_load(const std::string& path);

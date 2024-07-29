@@ -10,19 +10,19 @@ i32 main(i32 argc, const char *argv[]){
     ac::scene_load(scene, "sample_scene_001.json");
 
     // load scene_2d
-    ac::object_2d* object = ac::scene_2d_make_new_object(scene_2d);
-    object->fragment = "ui_frag.glsl";
-    object->vertex = "ui_vert.glsl";
+    ac::scene_2d_element ui_element = ac::scene_2d_make_new_object(scene_2d);
+    ui_element.object->fragment = "ui_frag.glsl";
+    ui_element.object->vertex = "ui_vert.glsl";
     const std::string texture_path = ac::config_get_root_path() + ac::config_get_textures_path() + "test.png";
-    object->textures.push_back(LoadTexture(texture_path.c_str()));
-    ac::text* text = ac::push_back(&object->texts);
+    ui_element.object->textures.push_back(LoadTexture(texture_path.c_str()));
+    ac::text* text = ac::push_back(&ui_element.object->texts);
     text->font = GetFontDefault(); //LoadFontEx(ac::config_get_fonts_path().c_str(), 32, 0, 250);
     text->string = "Hello";
     text->position = {100, 100};
     text->fontSize = 32;
     text->spacing = 5;
     text->tint = BLUE;
-    
+    ac::scene_2d_element_bake(ui_element);
     while (ac::engine_should_loop()){
         ac::engine_process_input();
         ac::engine_render();
