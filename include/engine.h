@@ -120,6 +120,8 @@ namespace ac{
     void scene_2d_render(scene_2d* scene);
     void scene_2d_load(scene_2d* scene, const std::string& path);
     ac::scene_2d* scene_2d_get_active();
+    void scene_add_object_2d(scene_2d* scene, object_2d* object);
+    object_2d* scene_2d_make_new_object(scene_2d* scene);
     // model
     ac::model* model_load(const json &model_json);
     ac::model* model_load(const std::string& path);

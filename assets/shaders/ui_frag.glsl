@@ -8,5 +8,5 @@ out vec4 final_color;
 void main() {
     vec2 uv = frag_texcoord;
     vec4 texture_color = texture(texture0, uv);
-    final_color = texture_color;
+    final_color = vec4(texture_color.xy , 0.0, 1.0);
 }

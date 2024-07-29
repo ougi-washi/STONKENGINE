@@ -10,7 +10,7 @@ i32 main(i32 argc, const char *argv[]){
     ac::scene_load(scene, "sample_scene_001.json");
 
     // load scene_2d
-    ac::object_2d* object = ac::push_back(&scene_2d->objects);
+    ac::object_2d* object = ac::scene_2d_make_new_object(scene_2d);
     object->fragment = "ui_frag.glsl";
     object->vertex = "ui_vert.glsl";
     const std::string texture_path = ac::config_get_root_path() + ac::config_get_textures_path() + "test.png";

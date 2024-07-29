@@ -55,6 +55,24 @@ void ac::engine_end(){
         }
         models_pool->clear();
     }
+    for (ac::scene& scene : engine->scenes){
+        scene.models.clear();
+        scene.cameras.clear();
+    }
+    for (ac::scene_2d& scene_2d : engine->scenes_2d){
+        for (object_2d& object : scene_2d.objects){
+            UnloadShader(object.shader);
+            for (Texture2D& texture : object.textures){
+                UnloadTexture(texture);
+            }
+        }
+        scene_2d.objects.clear();
+        for (RenderTexture2D& render_texture : scene_2d.render_textures){
+            UnloadRenderTexture(render_texture);
+        }
+        scene_2d.render_textures.clear();
+    }
+    engine->scenes_2d.clear();
     delete engine_instance;
 }
 
@@ -387,11 +405,13 @@ ac::scene_2d *ac::scene_2d_make_new(){
 
 void ac::scene_2d_render(scene_2d *scene){
     if(!scene) { log_error("Cannot render, scene is NULL"); return; }
-    RenderTexture2D render_texture = LoadRenderTexture(GetScreenWidth(), GetScreenHeight());
-    BeginTextureMode(render_texture);
-    {
-        ClearBackground({0, 0, 0, 255});
-        for (object_2d& object : scene->objects){
+
+    for (sz i = 0 ; i < scene->objects.size(); ++i){
+        object_2d& object = scene->objects[i];
+        RenderTexture2D& render_texture = scene->render_textures[i];
+        BeginTextureMode(render_texture);
+        {
+            ClearBackground({0, 0, 0, 255});
             shader_load(object.shader, object.vertex, object.fragment);
             for (sz i = 0; i < object.textures.size(); ++i) {
                 shader_set_texture(&object.shader, object.textures[i], "texture" + std::to_string(i));
@@ -417,6 +437,7 @@ void ac::scene_2d_render(scene_2d *scene){
                 //     rlVertex2f(-1.0f, 1.0f);
                 // }
                 // rlEnd();
+                DrawCircle(100, 100, 50, RED);
                 // DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), WHITE);
                 // DrawRectangleGradientEx(
                 //     {0, 0, (f32)GetScreenWidth(), (f32)GetScreenHeight()}, 
@@ -427,14 +448,16 @@ void ac::scene_2d_render(scene_2d *scene){
                 DrawTextEx(text.font, text.string.c_str(), { text.position.x, text.position.y }, text.fontSize, text.spacing, text.tint);
             }
         }
+        EndTextureMode();
     }
-    EndTextureMode();
-
-    engine_enqueue_render_command([render_texture = render_texture](){
-        DrawTextureRec(render_texture.texture, { 0, 0, (f32)render_texture.texture.width, -(f32)render_texture.texture.height }, { 0, 0 }, { 255, 255, 255, 100 });
-        UnloadRenderTexture(render_texture);
+    
+    engine_enqueue_render_command([scene = scene](){
+        for (sz i = 0 ; i < scene->render_textures.size(); ++i){
+            RenderTexture2D& render_texture = scene->render_textures[i];
+            DrawTextureRec(render_texture.texture, { 0, 0, (f32)render_texture.texture.width, -(f32)render_texture.texture.height }, { 0, 0 }, { 255, 255, 255, 100 });
+        }
 #ifdef AC_EDITOR_MODE
-        editor_render_2d();
+            editor_render_2d();
 #endif //AC_EDITOR_MODE
     });
 }
@@ -498,6 +521,27 @@ ac::scene_2d *ac::scene_2d_get_active(){
     // currently only one scene is supported
     ac::scene_2d* scene = &ac::engine_get_instance()->scenes_2d[0];
     return scene;
+}
+
+void ac::scene_add_object_2d(ac::scene_2d *scene, ac::object_2d *object){
+    if(!scene) { log_error("Cannot add object, scene is NULL"); return; }
+    if(!object) { log_error("Cannot add object, object is NULL"); return; }
+    ac::object_2d* scene_object = ac::push_back(&scene->objects);
+    if(scene_object) {
+        *scene_object = *object;
+    }
+    else { log_error("Failed to add object to scene"); }
+}
+
+ac::object_2d *ac::scene_2d_make_new_object(ac::scene_2d *scene){
+    if(!scene) { log_error("Cannot make new object, scene is NULL"); return nullptr; }
+    ac::object_2d* object = ac::push_back(&scene->objects);
+    scene->render_textures.push_back(LoadRenderTexture(GetScreenWidth(), GetScreenHeight()));
+    if(object) {
+        return object;
+    }
+    log_error("Failed to add object to scene"); 
+    return nullptr;
 }
 
 ac::model* ac::model_load(const json &model_json){
