@@ -1,5 +1,12 @@
-#version 330 core
+#version 330
+
+uniform sampler2D texture0;
+
+in vec2 frag_texcoord;
+out vec4 final_color;
 
 void main() {
-    gl_FragColor = vec4(0.2392, 0.0, 0.5529, 1.0);
+    vec2 uv = frag_texcoord;
+    vec4 texture_color = texture(texture0, uv);
+    final_color = texture_color;
 }

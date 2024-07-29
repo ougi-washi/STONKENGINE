@@ -21,8 +21,8 @@ void ac::engine_start(){
     const i32 target_fps = ac::config_render_get_target_fps();
     // init raylib
     InitWindow(window_width, window_height, window_name.c_str());
-    SetExitKey(KEY_NULL);
-    SetConfigFlags(FLAG_VSYNC_HINT);
+    // SetExitKey(KEY_NULL);
+    // SetConfigFlags(FLAG_VSYNC_HINT);
 	SetConfigFlags(FLAG_MSAA_4X_HINT);
 	SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     SetTargetFPS(target_fps);
@@ -63,6 +63,26 @@ ac::engine *ac::engine_get_instance(){
     return engine_instance;
 }
 
+void ac::engine_render(){
+    ac::scene* scene = ac::scene_get_active();
+    ac::scene_render(scene);
+    ac::scene_2d* scene_2d = ac::scene_2d_get_active();
+    ac::scene_2d_render(scene_2d);
+
+    command_queue* render_queue = ac::engine_get_render_queue();
+    BeginDrawing();
+    {
+        while(!render_queue->empty()){
+            command render_command = ac::engine_get_instance()->render_queue.front();
+            if (render_command) { 
+                render_command(); 
+            }
+            ac::engine_get_instance()->render_queue.pop();
+        }
+    }
+    EndDrawing();
+}
+
 std::vector<ac::model>* ac::engine_get_models_pool(){
     return &ac::engine_get_instance()->models_pool;
 }
@@ -74,6 +94,15 @@ void ac::engine_process_input(){
 
 const f32 ac::engine_get_delta_time(){
     return GetFrameTime();
+}
+
+ac::command_queue* ac::engine_get_render_queue(){
+    ac::engine* engine = ac::engine_get_instance();
+    return &engine->render_queue;
+}
+
+void ac::engine_enqueue_render_command(const ac::command &render_command){
+    ac::engine_get_render_queue()->emplace(render_command);
 }
 
 void ac::input_add_map(const ac::input_map &input_map){
@@ -107,6 +136,67 @@ void ac::input_process(){
             input_map.callback();
         }
     }
+}
+
+b8 ac::shader_load(Shader &shader, const std::string &vertex, const std::string &fragment){
+    const std::string& shaders_path = ac::config_get_root_path() + ac::config_get_shaders_path();
+    const std::string& vertex_path = shaders_path + vertex;
+    const std::string& fragment_path = shaders_path + fragment;
+    if (IsShaderReady(shader) &&
+        (vertex == "") ? true : IsFileExtension(vertex_path.c_str(), ".glsl") && 
+        (fragment == "") ? true : IsFileExtension(fragment_path.c_str(), ".glsl")){
+        shader = LoadShader((vertex == "") ? 0 : vertex_path.c_str(), (fragment == "") ? 0 : fragment_path.c_str());
+        return shader.id != 0;
+    }
+    return false;
+}
+
+i32 ac::shader_set_float(Shader* shader, const f32 value, const std::string& uniform_name) {
+    if (!shader) { log_error("Shader is NULL"); return -1; }
+    int location = GetShaderLocation(*shader, uniform_name.c_str());
+    if (location == -1) { log_error("Uniform location not found"); return -1; }
+    SetShaderValue(*shader, location, &value, SHADER_UNIFORM_FLOAT);
+    return location;
+}
+
+i32 ac::shader_set_int(Shader* shader, const i32 value, const std::string& uniform_name) {
+    if (!shader) { log_error("Shader is NULL"); return -1; }
+    int location = GetShaderLocation(*shader, uniform_name.c_str());
+    if (location == -1) { log_error("Uniform location not found"); return -1; }
+    SetShaderValue(*shader, location, &value, SHADER_UNIFORM_INT);
+    return location;
+}
+
+i32 ac::shader_set_vector3f(Shader* shader, const Vector3& value, const std::string& uniform_name) {
+    if (!shader) { log_error("Shader is NULL"); return -1; }
+    int location = GetShaderLocation(*shader, uniform_name.c_str());
+    if (location == -1) { log_error("Uniform location not found"); return -1; }
+    SetShaderValue(*shader, location, &value, SHADER_UNIFORM_VEC3);
+    return location;
+}
+
+i32 ac::shader_set_vector3i(Shader* shader, const Vector3& value, const std::string& uniform_name) {
+    if (!shader) { log_error("Shader is NULL"); return -1; }
+    int location = GetShaderLocation(*shader, uniform_name.c_str());
+    if (location == -1) { log_error("Uniform location not found"); return -1; }
+    SetShaderValue(*shader, location, &value, SHADER_UNIFORM_IVEC3);
+    return location;
+}
+
+i32 ac::shader_set_matrix(Shader* shader, const Matrix& value, const std::string& uniform_name) {
+    if (!shader) { log_error("Shader is NULL"); return -1; }
+    int location = GetShaderLocation(*shader, uniform_name.c_str());
+    if (location == -1) { log_error("Uniform location not found"); return -1; }
+    SetShaderValueMatrix(*shader, location, value);
+    return location;
+}
+
+i32 ac::shader_set_texture(Shader* shader, Texture2D& texture, const std::string& uniform_name) {
+    if (!shader) { log_error("Shader is NULL"); return -1; }
+    const i32 location = GetShaderLocation(*shader, uniform_name.c_str());
+    if (location == -1) { log_error("Uniform location not found"); return -1; }
+    SetShaderValueTexture(*shader, 6, texture);
+    return location;
 }
 
 void material_load(Material& material, const json &material_json){
@@ -258,19 +348,17 @@ void ac::scene_render(ac::scene *scene){
     ac::camera* camera = ac::scene_get_active_camera(scene);
     if (!camera) { log_error("Cannot render, camera is NULL"); return; }
 
-    BeginDrawing();
-    {
+    engine_enqueue_render_command([scene = scene, camera = camera](){
         ClearBackground(BLACK);
         BeginMode3D(camera->camera);
         for (ac::model& model : scene->models){
             ac::model_render(&model);
         }
 #ifdef AC_EDITOR_MODE
-    editor_render_3d(camera);
+        editor_render_3d(camera);
 #endif //AC_EDITOR_MODE
         EndMode3D();
-    }
-    EndDrawing();
+    });
 }
 
 ac::scene *ac::scene_get_active(){
@@ -302,16 +390,37 @@ void ac::scene_2d_render(scene_2d *scene){
     RenderTexture2D render_texture = LoadRenderTexture(GetScreenWidth(), GetScreenHeight());
     BeginTextureMode(render_texture);
     {
-        // ClearBackground(RAYWHITE);
+        ClearBackground({0, 0, 0, 255});
         for (object_2d& object : scene->objects){
-            object.shader = LoadShader(object.vertex.c_str(), object.fragment.c_str());
+            shader_load(object.shader, object.vertex, object.fragment);
             for (sz i = 0; i < object.textures.size(); ++i) {
-                std::string uniform_name = "texture" + std::to_string(i);
-                SetShaderValueTexture(object.shader, GetShaderLocation(object.shader, uniform_name.c_str()), object.textures[i]);
+                shader_set_texture(&object.shader, object.textures[i], "texture" + std::to_string(i));
             }
             BeginShaderMode(object.shader);
             {
-                DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), RED);
+                // rlBegin(RL_QUADS);
+                // {
+                //     // Bottom-left
+                //     rlTexCoord2f(0.0f, 0.0f);
+                //     rlVertex2f(-1.0f, -1.0f);
+                    
+                //     // Bottom-right
+                //     rlTexCoord2f(1.0f, 0.0f);
+                //     rlVertex2f(1.0f, -1.0f);
+                    
+                //     // Top-right
+                //     rlTexCoord2f(1.0f, 1.0f);
+                //     rlVertex2f(1.0f, 1.0f);
+                    
+                //     // Top-left
+                //     rlTexCoord2f(0.0f, 1.0f);
+                //     rlVertex2f(-1.0f, 1.0f);
+                // }
+                // rlEnd();
+                // DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), WHITE);
+                // DrawRectangleGradientEx(
+                //     {0, 0, (f32)GetScreenWidth(), (f32)GetScreenHeight()}, 
+                //     {0, 0, 0, 255}, {255, 0, 0, 255}, {0, 255, 0, 255}, {255, 255, 0, 255});
             }
             EndShaderMode();
             for (const text& text : object.texts){
@@ -321,13 +430,13 @@ void ac::scene_2d_render(scene_2d *scene){
     }
     EndTextureMode();
 
-    BeginDrawing();
-    {
-        // ClearBackground(RAYWHITE);
-        DrawTexture(render_texture.texture, 0, 0, WHITE);
-    }
-    EndDrawing();
-    UnloadRenderTexture(render_texture);
+    engine_enqueue_render_command([render_texture = render_texture](){
+        DrawTextureRec(render_texture.texture, { 0, 0, (f32)render_texture.texture.width, -(f32)render_texture.texture.height }, { 0, 0 }, { 255, 255, 255, 100 });
+        UnloadRenderTexture(render_texture);
+#ifdef AC_EDITOR_MODE
+        editor_render_2d();
+#endif //AC_EDITOR_MODE
+    });
 }
 
 void ac::scene_2d_load(scene_2d *scene, const std::string &path){
@@ -383,6 +492,12 @@ void ac::scene_2d_load(scene_2d *scene, const std::string &path){
             }
         }
     }
+}
+
+ac::scene_2d *ac::scene_2d_get_active(){
+    // currently only one scene is supported
+    ac::scene_2d* scene = &ac::engine_get_instance()->scenes_2d[0];
+    return scene;
 }
 
 ac::model* ac::model_load(const json &model_json){
@@ -496,14 +611,8 @@ void ac::model_set_material(model *model, Material *material, const i32 mesh_ind
     model->data.materials[mesh_index] = *material;
 }
 
-void ac::material_load(Material &material, const std::string &vertex, const std::string &fragment){
-    const std::string& shaders_path = ac::config_get_root_path() + ac::config_get_shaders_path();
-    const std::string& vertex_path = shaders_path + vertex;
-    const std::string& fragment_path = shaders_path + fragment;
-    if (IsFileExtension(vertex_path.c_str(), ".glsl") && IsFileExtension(fragment_path.c_str(), ".glsl")){
-        Shader shader = LoadShader(vertex_path.c_str(), fragment_path.c_str());
-        material.shader = shader;
-    }
+b8 ac::material_load(Material &material, const std::string &vertex, const std::string &fragment){
+    return shader_load(material.shader, vertex, fragment);
 }
 
 i32 ac::material_set_float(Material *material, const f32 value, const std::string &uniform_name)

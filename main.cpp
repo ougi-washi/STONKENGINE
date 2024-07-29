@@ -11,22 +11,23 @@ i32 main(i32 argc, const char *argv[]){
 
     // load scene_2d
     ac::object_2d* object = ac::push_back(&scene_2d->objects);
-    object->fragment = ac::config_get_shaders_path() + "ui_frag.glsl";
-    object->vertex = ac::config_get_shaders_path() + "ui_vert.glsl";
-    const std::string texture_path = ac::config_get_textures_path() + "test.png";
+    object->fragment = "ui_frag.glsl";
+    object->vertex = "ui_vert.glsl";
+    const std::string texture_path = ac::config_get_root_path() + ac::config_get_textures_path() + "test.png";
     object->textures.push_back(LoadTexture(texture_path.c_str()));
     ac::text* text = ac::push_back(&object->texts);
     text->font = GetFontDefault(); //LoadFontEx(ac::config_get_fonts_path().c_str(), 32, 0, 250);
-    text->string = "Hello, World!";
+    text->string = "Hello";
     text->position = {100, 100};
     text->fontSize = 32;
-    text->spacing = 0;
-    text->tint = WHITE;
+    text->spacing = 5;
+    text->tint = BLUE;
     
     while (ac::engine_should_loop()){
         ac::engine_process_input();
-        ac::scene_render(scene);
-        ac::scene_2d_render(scene_2d);
+        ac::engine_render();
+        // ac::scene_render(scene);
+        // ac::scene_2d_render(scene_2d);
     }
     ac::engine_end();
     return 0;

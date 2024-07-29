@@ -5,6 +5,8 @@
 #include "raylib.h"
 #include <string>
 #include <vector>
+#include <queue>
+#include <functional>
 
 #include "json/json.h"
 using json = nlohmann::json;
@@ -78,11 +80,15 @@ namespace ac{
         selection selection = {};
     };
 
+    typedef std::function<void(void)> command; 
+    typedef std::queue<command> command_queue;
+
     struct engine {
         std::vector<scene> scenes = {};
         std::vector<scene_2d> scenes_2d = {};
         std::vector<model> models_pool = {};
         input_handler input = {};
+        command_queue render_queue = {};
     };
     
     // engine
@@ -90,9 +96,12 @@ namespace ac{
     const b8 engine_should_loop();
     void engine_end();
     engine* engine_get_instance();
+    void engine_render();
     std::vector<model>* engine_get_models_pool();
     void engine_process_input();
     const f32 engine_get_delta_time();
+    command_queue* engine_get_render_queue();
+    void engine_enqueue_render_command(const ac::command& render_command);
     // input
     void input_add_map(const input_map& input_map);
     void input_process();
@@ -110,6 +119,7 @@ namespace ac{
     ac::scene_2d* scene_2d_make_new();
     void scene_2d_render(scene_2d* scene);
     void scene_2d_load(scene_2d* scene, const std::string& path);
+    ac::scene_2d* scene_2d_get_active();
     // model
     ac::model* model_load(const json &model_json);
     ac::model* model_load(const std::string& path);
@@ -120,8 +130,16 @@ namespace ac{
     void model_set_rotation(model* model, const Vector3& rotation);
     void model_set_scale(model* model, const Vector3& scale);
     void model_set_material(model* model, Material* material, const i32 mesh_index);
+    // shader
+    b8 shader_load(Shader& shader, const std::string& vertex, const std::string& fragment);
+    i32 shader_set_float(Shader* shader, const f32 value, const std::string& uniform_name);
+    i32 shader_set_int(Shader* shader, const i32 value, const std::string& uniform_name);
+    i32 shader_set_vector3f(Shader* shader, const Vector3& value, const std::string& uniform_name);
+    i32 shader_set_vector3i(Shader* shader, const Vector3& value, const std::string& uniform_name);
+    i32 shader_set_matrix(Shader* shader, const Matrix& value, const std::string& uniform_name);
+    i32 shader_set_texture(Shader* shader, Texture2D& texture, const std::string& uniform_name);
     // material
-    void material_load(Material& material, const std::string& vertex, const std::string& fragment);
+    b8 material_load(Material& material, const std::string& vertex, const std::string& fragment);
     i32 material_set_float(Material* material, const f32 value, const std::string& uniform_name);
     i32 material_set_int(Material* material, const i32 value, const std::string& uniform_name);
     i32 material_set_vector3f(Material* material, const Vector3& value, const std::string& uniform_name);
