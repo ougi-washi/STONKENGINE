@@ -8,8 +8,8 @@
             "target": [0, 0, 0],
             "up": [0, 1, 0],
             "fov": 45,
-            "movement_speed": 35.0,
-            "rotation_speed": 2.5,
+            "movement_speed": 25.0,
+            "rotation_speed": 2.0,
             "is_active": true
         },
         {
@@ -24,9 +24,11 @@
             "type": "model",
             "path": "cube.obj",
             "materials": ["sample_material_001.json"],
-            "position": [0, 0, 0],
-            "rotation": [0, 0, 0],
-            "scale": [1, 1, 1]
+            "transform" : {
+                "translation": [0, 0, 0],
+                "rotation": [0, 0, 0],
+                "scale": [1, 1, 1]
+            }
         }
     ]
 }

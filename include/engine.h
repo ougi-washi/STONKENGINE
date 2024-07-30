@@ -15,6 +15,8 @@ namespace ac{
     struct model{
         Model data = {0};
         std::string path = "";
+        std::string name = "";
+        std::vector<std::string> materials = {};
     };
 
     struct camera {
@@ -32,6 +34,7 @@ namespace ac{
     };
 
     struct scene {
+        std::string path = "";
         std::vector<model> models = {};
         std::vector<light> lights = {};
         std::vector<camera> cameras = {};
@@ -74,14 +77,32 @@ namespace ac{
         
     };
 
+    enum input_state {
+        PRESSED = 0,
+        RELEASED = 1,
+        DOWN = 2,
+        UP = 3,
+    };
+
+    struct input_keyboard{
+        KeyboardKey key = KEY_NULL;
+        input_state state = input_state::PRESSED;
+    };
+
+    struct input_mouse{
+        MouseButton button = MOUSE_LEFT_BUTTON;
+        input_state state = input_state::PRESSED;
+    };
+
     struct input_map {
-        std::vector<KeyboardKey> keyboard_keys = {}; // for now, default is pressed
-        std::vector<MouseButton> mouse_buttons = {}; // for now, default is pressed
+        std::vector<input_keyboard> inputs_keyboard = {};
+        std::vector<input_mouse> inputs_mouse = {};
         void(*callback)();
     };
 
     struct input_handler {
         std::vector<input_map> input_maps = {};
+        b8 is_active = true;
     };
 
     struct selection_handler{
@@ -122,13 +143,16 @@ namespace ac{
     void engine_enqueue_render_command(const ac::command& render_command);
     editor* engine_get_editor();
     // input
+    input_handler* input_get_handler();
     void input_add_map(const input_map& input_map);
     void input_process();
+    void input_set_active(const b8 new_state);
     // scene
     ac::scene* scene_make_new();
     void scene_load(scene* scene, const std::string &path);
     void scene_render(scene* scene);
     ac::scene* scene_get_active();
+    void scene_save(scene* scene);
     void scene_add_model(scene* scene, ac::model* model);
     void scene_add_camera(scene* scene, Camera camera, const f32 movement_speed, const f32 rotation_speed, const b8 is_active);
     ac::camera* scene_make_new_camera(scene* scene);
@@ -146,6 +170,7 @@ namespace ac{
     // model
     ac::model* model_load(const json &model_json);
     ac::model* model_load(const std::string& path);
+    void model_save(ac::model* model, json& model_json);
     void model_render(model* model);
     void model_render_wireframe(model* model, const Color& tint);
     void model_render_instances(model* model, Matrix* transforms, const i32 count);
@@ -187,6 +212,9 @@ namespace ac{
     const Vector3 transform_get_rotation(const Matrix& transform);
     const Quaternion transform_get_rotation_quaternion(const Matrix& transform);
     const Vector3 transform_get_scale(const Matrix& transform);
+    const Vector3 matrix_to_euler(const Matrix& mat);
+    Matrix get_transform_matrix(const Vector3& translation, const Vector3& rotation, const Vector3& scale, const Vector3& center);
+    void get_transform_components(const Matrix& matrix, Vector3* translation, Vector3* rotation, Vector3* scale, const Vector3& center);
     // light
     // ...
     //config

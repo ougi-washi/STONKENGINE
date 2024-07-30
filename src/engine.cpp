@@ -134,7 +134,12 @@ ac::editor *ac::engine_get_editor(){
     return &ac::engine_get_instance()->editor;
 }
 
-void ac::input_add_map(const ac::input_map &input_map){
+ac::input_handler *ac::input_get_handler(){
+    return &ac::engine_get_instance()->input;
+}
+
+void ac::input_add_map(const ac::input_map &input_map)
+{
     ac::engine* engine = ac::engine_get_instance();
     ac::input_map* input = ac::push_back(&engine->input.input_maps);
     if(input) {
@@ -144,27 +149,45 @@ void ac::input_add_map(const ac::input_map &input_map){
 }
 
 void ac::input_process(){
+    if (!ac::engine_get_instance()->input.is_active) { return; }
     ac::engine* engine = ac::engine_get_instance();
     for (ac::input_map& input_map : engine->input.input_maps){
-        if (input_map.keyboard_keys.empty() && input_map.mouse_buttons.empty()) { 
+        if (input_map.inputs_keyboard.empty() && input_map.inputs_mouse.empty()) { 
             log_error("Cannot process input, no keys or buttons found"); continue; 
         }  
         b8 valid_keyboard_keys = true;
-        for (const i32& key : input_map.keyboard_keys){
-            if (!IsKeyDown(key)){
+        for (const input_keyboard& input : input_map.inputs_keyboard){
+            const b8 required_state =  
+                        (input.state == PRESSED) ? IsKeyPressed(input.key) : 
+                        (input.state == RELEASED) ? IsKeyReleased(input.key) : 
+                        (input.state == DOWN) ? IsKeyDown(input.key) :
+                        IsKeyUp(input.key);
+            if (!required_state){
                 valid_keyboard_keys = false;
+                break;
             }
         }
         b8 valid_mouse_buttons = true;
-        for (const i32& button : input_map.mouse_buttons){
-            if (!IsMouseButtonDown(button)){
+        for (const input_mouse& input : input_map.inputs_mouse){
+            b8 required_state = 
+                        (input.state == PRESSED) ? IsMouseButtonPressed(input.button) : 
+                        (input.state == RELEASED) ? IsMouseButtonReleased(input.button) : 
+                        (input.state == DOWN) ? IsMouseButtonDown(input.button) :
+                        IsMouseButtonUp(input.button);
+            if (!required_state){
                 valid_mouse_buttons = false;
+                break;
             }
         }
         if (valid_keyboard_keys && valid_mouse_buttons){
             input_map.callback();
         }
     }
+}
+
+void ac::input_set_active(const b8 new_state){
+    ac::engine* engine = ac::engine_get_instance();
+    engine->input.is_active = new_state;
 }
 
 b8 ac::shader_load(Shader &shader, const std::string &vertex, const std::string &fragment){
@@ -294,7 +317,7 @@ void ac::scene_load(ac::scene *scene, const std::string &path)
     if (file_content.empty()) { log_error("Could not load scene, file is empty"); return; }
     const json& scene_json = json::parse(file_content);
     if (scene_json.empty()) { log_error("Could not load scene, json is empty"); return; }
-
+    scene->path = path;
     if (!scene_json.contains("objects")) { log_error("Could not load scene, objects not found"); return; }
     const std::vector<json>& objects = scene_json["objects"];
 
@@ -397,6 +420,33 @@ ac::scene *ac::scene_get_active(){
     // currently only one scene is supported
     ac::scene* scene = &ac::engine_get_instance()->scenes[0];
     return scene;
+}
+
+void ac::scene_save(scene *scene){
+    if(!scene) { log_error("Cannot save scene, scene is NULL"); return; }
+    const std::string& file_path = ac::config_get_root_path() + ac::config_get_scenes_path() + scene->path;
+    json scene_json;
+    scene_json["objects"] = json::array();
+    for (ac::model& model : scene->models){
+        json model_json;
+        ac::model_save(&model, model_json);
+        scene_json["objects"].push_back(model_json);
+    }
+    for (ac::camera& camera : scene->cameras){
+        json camera_json;
+        camera_json["type"] = "camera";
+        camera_json["position"] = {camera.camera.position.x, camera.camera.position.y, camera.camera.position.z};
+        camera_json["target"] = {camera.camera.target.x, camera.camera.target.y, camera.camera.target.z};
+        camera_json["up"] = {camera.camera.up.x, camera.camera.up.y, camera.camera.up.z};
+        camera_json["fovy"] = camera.camera.fovy;
+        camera_json["is_active"] = camera.is_active;
+        camera_json["movement_speed"] = camera.movement_speed;
+        camera_json["rotation_speed"] = camera.rotation_speed;
+        scene_json["objects"].push_back(camera_json);
+    }
+    std::ofstream file(file_path);
+    file << scene_json.dump(4);
+    file.close();
 }
 
 ac::camera *ac::scene_get_active_camera(ac::scene *scene){
@@ -561,18 +611,19 @@ ac::model* ac::model_load(const json &model_json){
     if (!model) { log_error("Could not load scene, model is NULL"); return nullptr; }
     if (model_json.contains("transform")){
         const json& transform = model_json["transform"];
+        Vector3 translation = {};
+        Vector3 rotation = {};
+        Vector3 scale = {};
         if (transform.contains("translation")){
-            const Vector3& translation = {transform["translation"][0], transform["translation"][1], transform["translation"][2]};
-            ac::model_set_location(model, translation);
+            translation = {transform["translation"][0], transform["translation"][1], transform["translation"][2]};
         }
         if (transform.contains("rotation")){
-            const Vector3& rotation = {transform["rotation"][0], transform["rotation"][1], transform["rotation"][2]};
-            ac::model_set_rotation(model, rotation);
+            rotation = {transform["rotation"][0], transform["rotation"][1], transform["rotation"][2]};
         }
         if (transform.contains("scale")){
-            const Vector3& scale = {transform["scale"][0], transform["scale"][1], transform["scale"][2]};
-            ac::model_set_scale(model, scale);
+            scale = {transform["scale"][0], transform["scale"][1], transform["scale"][2]};
         }
+        model->data.transform = get_transform_matrix(translation, rotation, scale, translation);
     }
     if (model_json.contains("materials")){
         const std::vector<json>& materials = model_json["materials"];
@@ -581,6 +632,7 @@ ac::model* ac::model_load(const json &model_json){
         model->data.materialCount = 0;
         for (i32 i = 0; i < materials.size(); i++){
             const std::string& material_path = materials[i];
+            model->materials.push_back(material_path);
             Material& material = model->data.materials[i];
             const std::string& material_file_content = ac::read_file(ac::config_get_root_path() + ac::config_get_materials_path() + material_path);
             if (material_file_content.empty()) { log_error("Could not load material, file is empty"); continue; } 
@@ -606,10 +658,33 @@ ac::model *ac::model_load(const std::string &path){
         model = ac::push_back(ac::engine_get_models_pool());
         if (!model) { log_error("Failed to add model to the pool"); return NULL; }
         model->data = LoadModel(model_path.c_str());
-        model->path = model_path;
+        model->path = path;
         model->data.transform = MatrixIdentity();
     }
     return model;
+}
+
+void ac::model_save(ac::model *model, json &model_json){
+    if(!model) { log_error("Cannot save model, model is NULL"); return; }
+    model_json["type"] = "model";
+    model_json["name"] = model->name;
+    model_json["path"] = model->path;
+    model_json["transform"] = json::object();
+    json& transform = model_json["transform"];
+    // Vector3 translation = transform_get_location(model->data.transform);
+    // Vector3 rotation = transform_get_rotation(model->data.transform);
+    // Vector3 scale = transform_get_scale(model->data.transform);
+    Vector3 translation = {};
+    Vector3 rotation = {};
+    Vector3 scale = {};
+    get_transform_components(model->data.transform, &translation, &rotation, &scale, translation);
+    transform["translation"] = {translation.x, translation.y, translation.z};
+    transform["rotation"] = {rotation.x, rotation.y, rotation.z};
+    transform["scale"] = {scale.x, scale.y, scale.z};
+    model_json["materials"] = json::array();
+    for (i32 i = 0; i < model->materials.size(); i++){
+        model_json["materials"].push_back(model->materials[i]);
+    }
 }
 
 void ac::model_render(ac::model *model) {
@@ -620,8 +695,6 @@ void ac::model_render(ac::model *model) {
                 DrawMesh(model->data.meshes[i], model->data.materials[j], model->data.transform);
             }
         }
-        // if (model->data.meshCount != model->data.materialCount) { log_error("Model mesh count does not match material count"); continue; }
-        // DrawMesh(model->data.meshes[i], model->data.materials[i], model->data.transform);
     }
 }
 
@@ -629,7 +702,7 @@ void ac::model_render_wireframe(ac::model *model, const Color& tint){
     if(!model) { log_error("Cannot render wireframe, model is NULL"); return; }
     for (i32 i = 0; i < model->data.materialCount; i++){
         // Color color = model->data.materials[i].maps[MATERIAL_MAP_DIFFUSE].color;
-
+        
         // Color colorTint = WHITE;
         // colorTint.r = (unsigned char)(((int)color.r*(int)tint.r)/255);
         // colorTint.g = (unsigned char)(((int)color.g*(int)tint.g)/255);
@@ -801,8 +874,7 @@ const Vector3 ac::transform_get_location(const Matrix &transform){
 }
 
 const Vector3 ac::transform_get_rotation(const Matrix &transform){
-    Quaternion quaternion = {transform.m0, transform.m1, transform.m2, transform.m3};
-    return QuaternionToEuler(quaternion);
+    return matrix_to_euler(transform);
 }
 
 const Quaternion ac::transform_get_rotation_quaternion(const Matrix &transform){
@@ -810,7 +882,67 @@ const Quaternion ac::transform_get_rotation_quaternion(const Matrix &transform){
 }
 
 const Vector3 ac::transform_get_scale(const Matrix &transform){
-    return {transform.m0, transform.m5, transform.m10};
+    Vector3 scale;
+    scale.x = Vector3Length({transform.m0, transform.m1, transform.m2});
+    scale.y = Vector3Length({transform.m4, transform.m5, transform.m6});
+    scale.z = Vector3Length({transform.m8, transform.m9, transform.m10});
+    return scale;
+}
+
+const Vector3 ac::matrix_to_euler(const Matrix &mat) {
+    Vector3 euler;
+
+    float sy = sqrt(mat.m0 * mat.m0 + mat.m1 * mat.m1);
+    bool singular = sy < 1e-6; // If
+
+    if (!singular) {
+        euler.x = atan2(mat.m6, mat.m10); // Roll
+        euler.y = atan2(-mat.m2, sy);     // Pitch
+        euler.z = atan2(mat.m1, mat.m0);  // Yaw
+    } else {
+        euler.x = atan2(-mat.m9, mat.m5); // Roll
+        euler.y = atan2(-mat.m2, sy);     // Pitch
+        euler.z = 0; // Yaw
+    }
+
+    return euler;
+}
+
+Matrix ac::get_transform_matrix(const Vector3 &translation, const Vector3 &rotation, const Vector3 &scale, const Vector3 &center) {
+    Matrix translationToOrigin = MatrixTranslate(-center.x, -center.y, -center.z);
+    Matrix rotationMatrix = MatrixRotateXYZ(rotation);
+    Matrix scaleMatrix = MatrixScale(scale.x, scale.y, scale.z);
+    Matrix translationBack = MatrixTranslate(center.x, center.y, center.z);
+    Matrix translationMatrix = MatrixTranslate(translation.x, translation.y, translation.z);
+
+    Matrix transformMatrix = MatrixMultiply(scaleMatrix, rotationMatrix);
+    transformMatrix = MatrixMultiply(transformMatrix, translationToOrigin);
+    transformMatrix = MatrixMultiply(transformMatrix, translationBack);
+    transformMatrix = MatrixMultiply(transformMatrix, translationMatrix);
+
+    return transformMatrix;
+}
+
+void ac::get_transform_components(const Matrix &matrix, Vector3 *translation, Vector3 *rotation, Vector3 *scale, const Vector3 &center) {
+    *translation = {matrix.m12, matrix.m13, matrix.m14};
+    Vector3 xAxis = {matrix.m0, matrix.m1, matrix.m2};
+    Vector3 yAxis = {matrix.m4, matrix.m5, matrix.m6};
+    Vector3 zAxis = {matrix.m8, matrix.m9, matrix.m10};
+
+    scale->x = Vector3Length(xAxis);
+    scale->y = Vector3Length(yAxis);
+    scale->z = Vector3Length(zAxis);
+
+    xAxis = Vector3Normalize(xAxis);
+    yAxis = Vector3Normalize(yAxis);
+    zAxis = Vector3Normalize(zAxis);
+
+    Matrix rotationMatrix = { xAxis.x, xAxis.y, xAxis.z, 0.0f,
+                              yAxis.x, yAxis.y, yAxis.z, 0.0f,
+                              zAxis.x, zAxis.y, zAxis.z, 0.0f,
+                              0.0f,    0.0f,    0.0f,    1.0f };
+
+    *rotation = matrix_to_euler(rotationMatrix);
 }
 
 b8 ac::config_window_get_size(i32 *width, i32 *height)
@@ -839,7 +971,6 @@ const i32 ac::config_render_get_target_fps(){
     return render_json["target_fps"].get<i32>();
 }
 
-f64 selection_last_time = 0.;
 void ac::editor_init(){
 
     struct input_functions_t {
@@ -928,15 +1059,16 @@ void ac::editor_init(){
 
         static void select_object(){
             log_info("Selecting objects");
-            if (GetTime() - selection_last_time < 0.2) { return; }
             ac::selection_handler* selection_handler = ac::editor_get_selection_handler();
-            if(selection_handler->hovered_models.size() > 0){
+            if (selection_handler->selected_models.size() > 0){
+                selection_handler->selected_models.clear();
+            }
+            else if(selection_handler->hovered_models.size() > 0){
                 selection_handler->selected_models = selection_handler->hovered_models;
             }
             else {
                 selection_handler->selected_models.clear();
             }
-            selection_last_time = GetTime();
         }
 
         static void deselect_objects(){
@@ -944,21 +1076,29 @@ void ac::editor_init(){
             ac::selection_handler* selection_handler = ac::editor_get_selection_handler();
             selection_handler->selected_models.clear();
         }
+
+        static void start_save_active_scene(){
+            log_info("Saving scene");
+            ac::scene* scene = ac::scene_get_active();
+            ac::scene_save(scene);
+        }
     } input_functions;
     // input
-    ac::input_add_map({{KEY_D}, {}, input_functions.move_camera_right});
-    ac::input_add_map({{KEY_A}, {}, input_functions.move_camera_left});
-    ac::input_add_map({{KEY_W}, {}, input_functions.move_camera_forward});
-    ac::input_add_map({{KEY_S}, {}, input_functions.move_camera_backward});
-    ac::input_add_map({{KEY_E}, {}, input_functions.move_camera_up});
-    ac::input_add_map({{KEY_Q}, {}, input_functions.move_camera_down});
-    ac::input_add_map({{KEY_RIGHT}, {}, input_functions.move_camera_rotate_right});
-    ac::input_add_map({{KEY_LEFT}, {}, input_functions.move_camera_rotate_left});
-    ac::input_add_map({{KEY_UP}, {}, input_functions.move_camera_rotate_up});
-    ac::input_add_map({{KEY_DOWN}, {}, input_functions.move_camera_rotate_down});
-    ac::input_add_map({{KEY_G}, {}, editor_toggle_show_grid});
-    ac::input_add_map({{KEY_SPACE}, {}, input_functions.select_object});
-    ac::input_add_map({{KEY_ESCAPE}, {}, input_functions.deselect_objects});
+    
+    ac::input_add_map({{{KEY_D, DOWN}},     {}, input_functions.move_camera_right});
+    ac::input_add_map({{{KEY_A, DOWN}},     {}, input_functions.move_camera_left});
+    ac::input_add_map({{{KEY_W, DOWN}},     {}, input_functions.move_camera_forward});
+    ac::input_add_map({{{KEY_S, DOWN}, {KEY_LEFT_CONTROL, UP}},     {}, input_functions.move_camera_backward});
+    ac::input_add_map({{{KEY_E, DOWN}},     {}, input_functions.move_camera_up});
+    ac::input_add_map({{{KEY_Q, DOWN}},     {}, input_functions.move_camera_down});
+    ac::input_add_map({{{KEY_RIGHT, DOWN}}, {}, input_functions.move_camera_rotate_right});
+    ac::input_add_map({{{KEY_LEFT, DOWN}},  {}, input_functions.move_camera_rotate_left});
+    ac::input_add_map({{{KEY_UP, DOWN}},    {}, input_functions.move_camera_rotate_up});
+    ac::input_add_map({{{KEY_DOWN, DOWN}},  {}, input_functions.move_camera_rotate_down});
+    ac::input_add_map({{{KEY_G, PRESSED}},  {}, editor_toggle_show_grid});
+    ac::input_add_map({{{KEY_SPACE, PRESSED}},  {}, input_functions.select_object});
+    ac::input_add_map({{{KEY_BACKSPACE, PRESSED}},  {}, input_functions.deselect_objects});
+    ac::input_add_map({{{KEY_LEFT_CONTROL, DOWN}, {KEY_S, PRESSED}},  {}, input_functions.start_save_active_scene});
 }
 
 void ac::editor_update(){
@@ -997,11 +1137,8 @@ void ac::editor_render_2d(){
     DrawText("- Editor Mode -", 12, 10, 20, {255, 0, 0, 255});
 }
 
-f64 toggle_show_grid_last_time = 0.;
 void ac::editor_toggle_show_grid(){
-    if (GetTime() - toggle_show_grid_last_time < 0.2) { return; }
     ac::engine_get_editor()->show_grid = !ac::engine_get_editor()->show_grid;
-    toggle_show_grid_last_time = GetTime();
 }
 
 ac::selection_handler *ac::editor_get_selection_handler(){
