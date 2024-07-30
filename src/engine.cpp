@@ -7,6 +7,7 @@
 #include "raymath.h"
 #include "defines.h"
 #include "rlgl.h"
+#include "rcamera.h"
 
 #define RAYGUI_IMPLEMENTATION
 #include "raygui.h"
@@ -24,7 +25,7 @@ void ac::engine_start(){
     const i32 target_fps = ac::config_render_get_target_fps();
     // init raylib
     InitWindow(window_width, window_height, window_name.c_str());
-    // SetExitKey(KEY_NULL);
+    SetExitKey(KEY_NULL);
     // SetConfigFlags(FLAG_VSYNC_HINT);
 	SetConfigFlags(FLAG_MSAA_4X_HINT);
 	SetConfigFlags(FLAG_WINDOW_RESIZABLE);
@@ -34,7 +35,7 @@ void ac::engine_start(){
 	rlEnableColorBlend();
 	rlSetBlendMode(RL_BLEND_ALPHA);
 	rlEnableBackfaceCulling();
-#ifdef AC_EDITOR_MODE
+#if AC_EDITOR_MODE
     editor_init();
 #endif // AC_EDITOR_MODE
 }
@@ -85,6 +86,9 @@ ac::engine *ac::engine_get_instance(){
 }
 
 void ac::engine_render(){
+#if AC_EDITOR_MODE
+    ac::editor_update();
+#endif //AC_EDITOR_MODE
     ac::scene* scene = ac::scene_get_active();
     ac::scene_render(scene);
     ac::scene_2d* scene_2d = ac::scene_2d_get_active();
@@ -124,6 +128,10 @@ ac::command_queue* ac::engine_get_render_queue(){
 
 void ac::engine_enqueue_render_command(const ac::command &render_command){
     ac::engine_get_render_queue()->emplace(render_command);
+}
+
+ac::editor *ac::engine_get_editor(){
+    return &ac::engine_get_instance()->editor;
 }
 
 void ac::input_add_map(const ac::input_map &input_map){
@@ -271,6 +279,7 @@ void material_load(Material& material, const json &material_json){
             }
         }
     }
+
 }
 
 ac::scene *ac::scene_make_new(){
@@ -310,7 +319,8 @@ void ac::scene_load(ac::scene *scene, const std::string &path)
             const Vector3& up = (object.contains("up") ? Vector3{object["up"][0], object["up"][1], object["up"][2]} : Vector3{0.0f, 1.0f, 0.0f});
             const f32 fovy = object.contains("fovy") ? (f32)object["fovy"] : 45.0f;
             const b8 is_active = object.contains("is_active") ? (b8)object["is_active"] : false;
-            const f32 speed = object.contains("speed") ? (f32)object["speed"] : 1.0f;            
+            const f32 movement_speed = object.contains("movement_speed") ? (f32)object["movement_speed"] : 1.0f;
+            const f32 rotation_speed = object.contains("rotation_speed") ? (f32)object["rotation_speed"] : 1.0f;            
 
             ac::scene_add_camera(scene, {
                 position,
@@ -318,7 +328,7 @@ void ac::scene_load(ac::scene *scene, const std::string &path)
                 up,
                 fovy,
                 CAMERA_PERSPECTIVE
-            }, speed, is_active);
+            }, movement_speed, rotation_speed, is_active);
         }
     }
 }
@@ -334,13 +344,14 @@ void ac::scene_add_model(ac::scene *scene, ac::model* model){
     else { log_error("Failed to add model to scene"); }
 }
 
-void ac::scene_add_camera(ac::scene *scene, Camera camera, const f32 speed, const b8 is_active){
+void ac::scene_add_camera(ac::scene *scene, Camera camera, const f32 movement_speed, const f32 rotation_speed, const b8 is_active){
     // edit json instead of adding camera directly
     if(!scene) { log_error("Scene is NULL"); return; }
     ac::camera* scene_camera = ac::push_back(&scene->cameras);
     if(scene_camera) {
         scene_camera->camera = camera;
-        scene_camera->speed = speed;
+        scene_camera->movement_speed = movement_speed;
+        scene_camera->rotation_speed = rotation_speed;
         ac::camera_set_active(scene_camera, is_active);
     }
     else { log_error("Failed to add camera to scene"); }
@@ -375,7 +386,7 @@ void ac::scene_render(ac::scene *scene){
         for (ac::model& model : scene->models){
             ac::model_render(&model);
         }
-#ifdef AC_EDITOR_MODE
+#if AC_EDITOR_MODE
         editor_render_3d(camera);
 #endif //AC_EDITOR_MODE
         EndMode3D();
@@ -414,7 +425,7 @@ void ac::scene_2d_render(scene_2d *scene){
             RenderTexture2D& render_texture = scene->render_textures[i];
             DrawTextureRec(render_texture.texture, { 0, 0, (f32)render_texture.texture.width, -(f32)render_texture.texture.height }, { 0, 0 }, { 255, 255, 255, 100 });
         }
-#ifdef AC_EDITOR_MODE
+#if AC_EDITOR_MODE
             editor_render_2d();
 #endif //AC_EDITOR_MODE
     });
@@ -597,7 +608,7 @@ ac::model *ac::model_load(const std::string &path){
         if (!model) { log_error("Failed to add model to the pool"); return NULL; }
         model->data = LoadModel(model_path.c_str());
         model->path = model_path;
-        model->transform = {{0.0f, 0.0f, 0.0f}, QuaternionIdentity(), {1.0f, 1.0f, 1.0f}};
+        model->data.transform = MatrixIdentity();
     }
     return model;
 }
@@ -605,12 +616,8 @@ ac::model *ac::model_load(const std::string &path){
 void ac::model_render(ac::model *model) {
     if(!model) { log_error("Cannot render, model is NULL"); return; }
     for (i32 i = 0; i < model->data.meshCount; i++){
-        const Matrix translation_matrix = MatrixTranslate(model->transform.translation.x, model->transform.translation.y, model->transform.translation.z);
-        const Matrix rotation_matrix = MatrixRotateXYZ(QuaternionToEuler(model->transform.rotation));
-        const Matrix scale_matrix = MatrixScale(model->transform.scale.x, model->transform.scale.y, model->transform.scale.z);
-        const Matrix model_matrix = MatrixMultiply(MatrixMultiply(translation_matrix, rotation_matrix), scale_matrix);
         if (model->data.meshCount != model->data.materialCount) { log_error("Model mesh count does not match material count"); continue; }
-        DrawMesh(model->data.meshes[i], model->data.materials[i], model_matrix);
+        DrawMesh(model->data.meshes[i], model->data.materials[i], model->data.transform);
     }
 }
 
@@ -632,17 +639,19 @@ void ac::model_render_instances(ac::model *model, Matrix *transforms, const i32 
 
 void ac::model_set_location(model *model, const Vector3& location) {
     if(!model) { log_error("Cannot set location, model is NULL"); return; }
-    model->transform.translation = location;
+    model->data.transform = MatrixTranslate(location.x, location.y, location.z);
 }
 
 void ac::model_set_rotation(model *model, const Vector3& rotation) {
     if(!model) { log_error("Cannot set rotation, model is NULL"); return; }
-    model->transform.rotation = QuaternionFromEuler(rotation.x, rotation.y, rotation.z);
+    const Matrix& rotation_matrix = MatrixRotateXYZ({rotation.x, rotation.y, rotation.z});
+    model->data.transform = MatrixMultiply(model->data.transform, rotation_matrix);
 }
 
 void ac::model_set_scale(model *model, const Vector3& scale) {
     if(!model) { log_error("Cannot set scale, model is NULL"); return; }
-    model->transform.scale = scale;
+    const Matrix& scale_matrix = MatrixScale(scale.x, scale.y, scale.z);
+    model->data.transform = MatrixMultiply(model->data.transform, scale_matrix);
 }
 
 void ac::model_set_material(model *model, Material *material, const i32 mesh_index){
@@ -694,31 +703,21 @@ i32 ac::material_set_texture(Material *material, const Texture2D &texture, const
     return slot;
 }
 
-void ac::camera_move(ac::camera *camera, const Vector3 &delta){
-    if (!camera) { log_error("Cannot move camera, camera is NULL"); return; }
-    const Vector3 front = Vector3Normalize(camera->camera.target - camera->camera.position);
-    const Vector3 right = Vector3Normalize(Vector3CrossProduct(front, camera->camera.up));
-    const Vector3 up = Vector3Normalize(Vector3CrossProduct(right, front));
-    const Vector3 front_offset = front * delta.z;
-    Vector3 offset = front_offset + Vector3Scale(right, delta.x);
-    offset.y = Vector3DotProduct(up, delta);
-    offset *= camera->speed;
-    camera->camera.position = camera->camera.position + offset;
-    camera->camera.target = camera->camera.target + offset;
+Vector3 ac::camera_move(ac::camera *camera, const Vector3 &delta){
+    if (!camera) { log_error("Cannot move camera, camera is NULL"); return {0}; }
+    Vector3 offset = delta * camera->movement_speed * engine_get_delta_time();
+    CameraMoveRight(&camera->camera, offset.x, false);
+    CameraMoveForward(&camera->camera, offset.z, false);
+    CameraMoveUp(&camera->camera, offset.y);
+    return offset;
 }
 
-void ac::camera_rotate_around_target(ac::camera *camera, const Vector3 &delta){
-    if (!camera) { log_error("Cannot rotate camera, camera is NULL"); return; }
-    const Vector3 offset = delta * camera->speed;
-    camera->camera.position = Vector3RotateByQuaternion(camera->camera.position, QuaternionFromEuler(offset.x, offset.y, offset.z));
-    camera->camera.target = Vector3RotateByQuaternion(camera->camera.target, QuaternionFromEuler(offset.x, offset.y, offset.z));
-}
-
-void ac::camera_rotate(ac::camera *camera, const Vector3 &delta){
-    if (!camera) { log_error("Cannot rotate camera, camera is NULL"); return; }
-    const Vector3 offset = delta * camera->speed;
-    camera->camera.position = Vector3RotateByQuaternion(camera->camera.position, QuaternionFromEuler(offset.x, offset.y, offset.z));
-    camera->camera.target = Vector3RotateByQuaternion(camera->camera.target, QuaternionFromEuler(offset.x, offset.y, offset.z));
+Vector3 ac::camera_rotate(ac::camera *camera, const Vector3 &delta, const b8 around_target){
+    if (!camera) { log_error("Cannot rotate camera, camera is NULL"); return {0}; }
+    const Vector3 offset = -delta * camera->rotation_speed * engine_get_delta_time();
+    CameraPitch(&camera->camera, offset.y, true, true, false);
+    CameraYaw(&camera->camera, offset.x, true);
+    return offset;
 }
 
 void ac::camera_set_position(ac::camera *camera, const Vector3 &position)
@@ -788,6 +787,10 @@ const Vector3 ac::transform_get_rotation(const Matrix &transform){
     return QuaternionToEuler(quaternion);
 }
 
+const Quaternion ac::transform_get_rotation_quaternion(const Matrix &transform){
+    return {transform.m0, transform.m1, transform.m2, transform.m3};
+}
+
 const Vector3 ac::transform_get_scale(const Matrix &transform){
     return {transform.m0, transform.m5, transform.m10};
 }
@@ -818,41 +821,110 @@ const i32 ac::config_render_get_target_fps(){
     return render_json["target_fps"].get<i32>();
 }
 
-void ac::editor_init()
-{
+f64 selection_last_time = 0.;
+void ac::editor_init(){
+
     struct input_functions_t {
+        
+        static void move_selected_object(){
+            ac::camera* camera = ac::scene_get_active_camera();
+            ac::selection_handler* selection_handler = ac::editor_get_selection_handler();
+            for (ac::model* model : selection_handler->selected_models){
+                transform_set_location(model->data.transform, camera->camera.target);
+            }
+        }
+
+        static void rotate_selected_object(const Vector3& delta){
+            ac::camera* camera = ac::scene_get_active_camera();
+            ac::selection_handler* selection_handler = ac::editor_get_selection_handler();
+            for (ac::model* model : selection_handler->selected_models){
+                Vector3 modelCenter = transform_get_location(model->data.transform);
+                Matrix translationToOrigin = MatrixTranslate(-modelCenter.x, -modelCenter.y, -modelCenter.z);
+                Matrix translationBack = MatrixTranslate(modelCenter.x, modelCenter.y, modelCenter.z);
+                Matrix rotation = MatrixRotateXYZ({ delta.z, delta.x, delta.y });
+                Matrix transform = MatrixMultiply(translationToOrigin, rotation);
+                transform = MatrixMultiply(transform, translationBack);
+                model->data.transform = MatrixMultiply(model->data.transform, transform);
+            }
+        }   
+
         static void move_camera_right(){
             ac::camera* camera = ac::scene_get_active_camera();
-            ac::camera_move(camera, {1., 0.f, 0.f});
+            Vector3 delta = ac::camera_move(camera, {1., 0.f, 0.f});
+            move_selected_object();
         }
 
         static void move_camera_left(){
             ac::camera* camera = ac::scene_get_active_camera();
-            ac::camera_move(camera, {-1.f, 0.f, 0.f});
+            Vector3 delta = ac::camera_move(camera, {-1.f, 0.f, 0.f});
+            move_selected_object();
         }
 
         static void move_camera_forward(){
             ac::camera* camera = ac::scene_get_active_camera();
-            ac::camera_move(camera, {0.f, 0.f, 1.f});
+            Vector3 delta = ac::camera_move(camera, {0.f, 0.f, 1.f});
+            move_selected_object();
         }
 
         static void move_camera_backward(){
             ac::camera* camera = ac::scene_get_active_camera();
-            ac::camera_move(camera, {0.f, 0.f, -1.f});
+            Vector3 delta = ac::camera_move(camera, {0.f, 0.f, -1.f});
+            move_selected_object();
         }
 
         static void move_camera_up(){
             ac::camera* camera = ac::scene_get_active_camera();
-            ac::camera_move(camera, {0.f, 1.f, 0.f});
+            Vector3 delta = ac::camera_move(camera, {0.f, 1.f, 0.f});
+            move_selected_object();
         }
 
         static void move_camera_down(){
             ac::camera* camera = ac::scene_get_active_camera();
-            ac::camera_move(camera, {0.f, -1.f, 0.f});
+            Vector3 delta = ac::camera_move(camera, {0.f, -1.f, 0.f});
+            move_selected_object();
         }
-        static void select_object(){
-            log_info("Selecting object");
+
+        static void move_camera_rotate_right(){
             ac::camera* camera = ac::scene_get_active_camera();
+            Vector3 delta = ac::camera_rotate(camera, {1.f, 0.f, 0.f});
+            rotate_selected_object(delta);
+        }
+
+        static void move_camera_rotate_left(){
+            ac::camera* camera = ac::scene_get_active_camera();
+            Vector3 delta = ac::camera_rotate(camera, {-1.f, 0.f, 0.f});
+            rotate_selected_object(delta);
+        }
+
+        static void move_camera_rotate_up(){
+            ac::camera* camera = ac::scene_get_active_camera();
+            Vector3 delta = ac::camera_rotate(camera, {0.f, -1.f, 0.f});
+            rotate_selected_object(delta);
+        }
+
+        static void move_camera_rotate_down(){
+            ac::camera* camera = ac::scene_get_active_camera();
+            Vector3 delta = ac::camera_rotate(camera, {0.f, 1.f, 0.f});
+            rotate_selected_object(delta);
+        }
+
+        static void select_object(){
+            log_info("Selecting objects");
+            if (GetTime() - selection_last_time < 0.2) { return; }
+            ac::selection_handler* selection_handler = ac::editor_get_selection_handler();
+            if(selection_handler->hovered_models.size() > 0){
+                selection_handler->selected_models = selection_handler->hovered_models;
+            }
+            else {
+                selection_handler->selected_models.clear();
+            }
+            selection_last_time = GetTime();
+        }
+
+        static void deselect_objects(){
+            log_info("Deselecting objects");
+            ac::selection_handler* selection_handler = ac::editor_get_selection_handler();
+            selection_handler->selected_models.clear();
         }
     } input_functions;
     // input
@@ -862,25 +934,58 @@ void ac::editor_init()
     ac::input_add_map({{KEY_S}, {}, input_functions.move_camera_backward});
     ac::input_add_map({{KEY_E}, {}, input_functions.move_camera_up});
     ac::input_add_map({{KEY_Q}, {}, input_functions.move_camera_down});
+    ac::input_add_map({{KEY_RIGHT}, {}, input_functions.move_camera_rotate_right});
+    ac::input_add_map({{KEY_LEFT}, {}, input_functions.move_camera_rotate_left});
+    ac::input_add_map({{KEY_UP}, {}, input_functions.move_camera_rotate_up});
+    ac::input_add_map({{KEY_DOWN}, {}, input_functions.move_camera_rotate_down});
+    ac::input_add_map({{KEY_G}, {}, editor_toggle_show_grid});
+    ac::input_add_map({{KEY_SPACE}, {}, input_functions.select_object});
+    ac::input_add_map({{KEY_ESCAPE}, {}, input_functions.deselect_objects});
+}
+
+void ac::editor_update(){
+
 }
 
 void ac::editor_render_3d(ac::camera* camera){
     if (!camera) { log_error("Cannot render editor, camera is NULL"); return; }
-    const Color& red_color = {255, 0, 0, 255};
-    DrawSphereWires(camera->camera.target, 0.02f, 6, 6, red_color);
-    DrawGrid(50, 1.f);
+    const Color& hover_color = {128, 128, 0, 255};
+    const Color& select_color = {255, 0, 0, 255};
+    DrawSphereWires(camera->camera.target, 0.02f, 6, 6, hover_color);
+    ac::editor* editor = ac::engine_get_editor();
+    if (editor->show_grid){
+        DrawGrid(50, 1.f);
+    }
+    ac::selection_handler* selection_handler = ac::editor_get_selection_handler();
+    selection_handler->hovered_models.clear();
     Ray res_ray = GetScreenToWorldRay({(f32)GetScreenWidth() / 2.f, (f32)GetScreenHeight() / 2.f}, camera->camera);
     for (ac::model& ac_model : ac::scene_get_active()->models){
         const Model& model = ac_model.data;
         for (i32 i = 0; i < model.meshCount; i++){
             const RayCollision& ray_collision =  GetRayCollisionMesh(res_ray, model.meshes[i], model.transform);
             if (ray_collision.hit){
-                DrawModelWires(model, transform_get_location(model.transform), 1.01f, red_color);
+                DrawModelWires(model, {0}, {1.}, hover_color);
+                selection_handler->hovered_models.push_back(&ac_model);
             }
         }
+    }
+    ac::selection_handler* selection = ac::editor_get_selection_handler();
+    for (ac::model* model : selection->selected_models){
+        DrawModelWires(model->data, {0}, {1.}, select_color);
     }
 }
 
 void ac::editor_render_2d(){
-    DrawText(" - Editor Mode -", 10, 10, 20, {255, 0, 0, 255});
+    DrawText("- Editor Mode -", 12, 10, 20, {255, 0, 0, 255});
+}
+
+f64 toggle_show_grid_last_time = 0.;
+void ac::editor_toggle_show_grid(){
+    if (GetTime() - toggle_show_grid_last_time < 0.2) { return; }
+    ac::engine_get_editor()->show_grid = !ac::engine_get_editor()->show_grid;
+    toggle_show_grid_last_time = GetTime();
+}
+
+ac::selection_handler *ac::editor_get_selection_handler(){
+    return &ac::engine_get_editor()->selection;
 }

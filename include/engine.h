@@ -14,13 +14,13 @@ using json = nlohmann::json;
 namespace ac{
     struct model{
         Model data = {};
-        Transform transform = {}; // world transform
         std::string path = "";
     };
 
     struct camera {
         Camera camera;
-        f32 speed;
+        f32 movement_speed;
+        f32 rotation_speed;
         b8 is_active;
     };
 
@@ -64,6 +64,16 @@ namespace ac{
         RenderTexture2D* render_texture;
     };
 
+    struct ui_banner{
+        std::string title = "";
+        std::string description = "";
+        std::string version = "";
+    };
+
+    struct ui_layout{
+        
+    };
+
     struct input_map {
         std::vector<KeyboardKey> keyboard_keys = {}; // for now, default is pressed
         std::vector<MouseButton> mouse_buttons = {}; // for now, default is pressed
@@ -75,14 +85,16 @@ namespace ac{
     };
 
     struct selection_handler{
-        std::vector<i32> selected_models = {};
-        std::vector<i32> selected_cameras = {}; // TODO: Maybe it will be removed?
-        std::vector<i32> selected_lights = {};
+        std::vector<ac::model*> hovered_models = {};
+        std::vector<ac::model*> selected_models = {};
+        std::vector<ac::camera*> selected_cameras = {}; // TODO: Maybe it will be removed?
+        std::vector<ac::light*> selected_lights = {};
     };
 
     struct editor{
         b8 is_active = false;
         ac::selection_handler selection = {};
+        b8 show_grid = true;
     };
 
     typedef std::function<void(void)> command; 
@@ -94,6 +106,7 @@ namespace ac{
         std::vector<model> models_pool = {};
         input_handler input = {};
         command_queue render_queue = {};
+        ac::editor editor = {};
     };
     
     // engine
@@ -107,6 +120,7 @@ namespace ac{
     const f32 engine_get_delta_time();
     command_queue* engine_get_render_queue();
     void engine_enqueue_render_command(const ac::command& render_command);
+    editor* engine_get_editor();
     // input
     void input_add_map(const input_map& input_map);
     void input_process();
@@ -116,7 +130,7 @@ namespace ac{
     void scene_render(scene* scene);
     ac::scene* scene_get_active();
     void scene_add_model(scene* scene, ac::model* model);
-    void scene_add_camera(scene* scene, Camera camera, const f32 speed, const b8 is_active);
+    void scene_add_camera(scene* scene, Camera camera, const f32 movement_speed, const f32 rotation_speed, const b8 is_active);
     ac::camera* scene_make_new_camera(scene* scene);
     ac::camera* scene_get_active_camera(scene* scene);
     ac::camera* scene_get_active_camera();
@@ -156,9 +170,8 @@ namespace ac{
     i32 material_set_matrix(Material* material, const Matrix& value, const std::string& uniform_name);
     i32 material_set_texture(Material* material, const Texture2D& texture, const std::string& uniform_name);
     // camera
-    void camera_move(camera* camera, const Vector3& delta);
-    void camera_rotate_around_target(camera* camera, const Vector3& delta);
-    void camera_rotate(camera* camera, const Vector3& delta);
+    Vector3 camera_move(camera* camera, const Vector3& delta);
+    Vector3 camera_rotate(camera* camera, const Vector3& delta, const b8 around_target = false);
     void camera_set_position(camera* camera, const Vector3& position);
     void camera_set_target(camera* camera, const Vector3& target);
     void camera_set_fovy(camera* camera, const f32 fovy);
@@ -172,6 +185,7 @@ namespace ac{
     void transform_set_scale(Matrix& transform, const Vector3& scale);
     const Vector3 transform_get_location(const Matrix& transform);
     const Vector3 transform_get_rotation(const Matrix& transform);
+    const Quaternion transform_get_rotation_quaternion(const Matrix& transform);
     const Vector3 transform_get_scale(const Matrix& transform);
     // light
     // ...
@@ -181,6 +195,9 @@ namespace ac{
     const i32 config_render_get_target_fps();
     // editor
     void editor_init();
+    void editor_update();
     void editor_render_3d(ac::camera* camera);
     void editor_render_2d();
+    void editor_toggle_show_grid();
+    selection_handler* editor_get_selection_handler();
 }

@@ -19,11 +19,12 @@ i32 main(i32 argc, const char *argv[]){
     ac::text* text = ac::push_back(&ui_element.object->texts);
     text->font = GetFontDefault(); //LoadFontEx(ac::config_get_fonts_path().c_str(), 32, 0, 250);
     text->string = "Abstract City";
-    text->position = {180, 20};
-    text->fontSize = 32;
-    text->spacing = 5;
-    text->tint = BLUE;
+    text->position = {200, 20};
+    text->fontSize = 30;
+    text->spacing = 10;
+    text->tint = {255, 255, 255, 255};
     ac::scene_2d_element_bake(ui_element);
+
     while (ac::engine_should_loop()){
         ac::engine_process_input();
         ac::engine_render();
