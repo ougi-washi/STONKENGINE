@@ -152,6 +152,7 @@ namespace ac{
     void scene_load(scene* scene, const std::string &path);
     void scene_render(scene* scene);
     ac::scene* scene_get_active();
+    void scene_clear(scene* scene);
     void scene_save(scene* scene);
     void scene_add_model(scene* scene, ac::model* model);
     void scene_add_camera(scene* scene, Camera camera, const f32 movement_speed, const f32 rotation_speed, const b8 is_active);

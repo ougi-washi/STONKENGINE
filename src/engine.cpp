@@ -317,6 +317,7 @@ void ac::scene_load(ac::scene *scene, const std::string &path)
     if (file_content.empty()) { log_error("Could not load scene, file is empty"); return; }
     const json& scene_json = json::parse(file_content);
     if (scene_json.empty()) { log_error("Could not load scene, json is empty"); return; }
+    scene_clear(scene);
     scene->path = path;
     if (!scene_json.contains("objects")) { log_error("Could not load scene, objects not found"); return; }
     const std::vector<json>& objects = scene_json["objects"];
@@ -420,6 +421,12 @@ ac::scene *ac::scene_get_active(){
     // currently only one scene is supported
     ac::scene* scene = &ac::engine_get_instance()->scenes[0];
     return scene;
+}
+
+void ac::scene_clear(scene *scene){
+    if(!scene) { log_error("Cannot clear scene, scene is NULL"); return; }
+    scene->models.clear();
+    scene->cameras.clear();
 }
 
 void ac::scene_save(scene *scene){
@@ -1077,10 +1084,16 @@ void ac::editor_init(){
             selection_handler->selected_models.clear();
         }
 
-        static void start_save_active_scene(){
+        static void save_active_scene(){
             log_info("Saving scene");
             ac::scene* scene = ac::scene_get_active();
             ac::scene_save(scene);
+        }
+
+        static void reload_scene(){
+            log_info("Reloading scene");
+            ac::scene* scene = ac::scene_get_active();
+            ac::scene_load(scene, scene->path);
         }
     } input_functions;
     // input
@@ -1098,7 +1111,8 @@ void ac::editor_init(){
     ac::input_add_map({{{KEY_G, PRESSED}},  {}, editor_toggle_show_grid});
     ac::input_add_map({{{KEY_SPACE, PRESSED}},  {}, input_functions.select_object});
     ac::input_add_map({{{KEY_BACKSPACE, PRESSED}},  {}, input_functions.deselect_objects});
-    ac::input_add_map({{{KEY_LEFT_CONTROL, DOWN}, {KEY_S, PRESSED}},  {}, input_functions.start_save_active_scene});
+    ac::input_add_map({{{KEY_LEFT_CONTROL, DOWN}, {KEY_S, PRESSED}},  {}, input_functions.save_active_scene});
+    ac::input_add_map({{{KEY_LEFT_CONTROL, DOWN}, {KEY_R, PRESSED}},  {}, input_functions.reload_scene});
 }
 
 void ac::editor_update(){
