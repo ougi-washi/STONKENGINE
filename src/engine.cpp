@@ -578,16 +578,15 @@ ac::model* ac::model_load(const json &model_json){
         const std::vector<json>& materials = model_json["materials"];
         // model->data.materialCount = materials.size();
         // model->data.materials = (Material*)RL_MALLOC(model->data.materialCount*sizeof(Material));
+        model->data.materialCount = 0;
         for (i32 i = 0; i < materials.size(); i++){
-            const json& material_json = materials[i];
+            const std::string& material_path = materials[i];
             Material& material = model->data.materials[i];
-            if (!material_json.contains("vertex") || !material_json.contains("fragment")) { 
-                log_error("Could not load scene, material vertex or fragment not found"); continue; 
-            }
+            const std::string& material_file_content = ac::read_file(ac::config_get_root_path() + ac::config_get_materials_path() + material_path);
+            if (material_file_content.empty()) { log_error("Could not load material, file is empty"); continue; } 
             model->data.materialCount++;
             model->data.materials = (Material*)RL_REALLOC(model->data.materials, model->data.materialCount*sizeof(Material));
-            material_load(model->data.materials[i], material_json);
-            ac::model_set_material(model, &material, i);
+            material_load(model->data.materials[i], json::parse(material_file_content));
         }
     }
     return model;
@@ -616,17 +615,32 @@ ac::model *ac::model_load(const std::string &path){
 void ac::model_render(ac::model *model) {
     if(!model) { log_error("Cannot render, model is NULL"); return; }
     for (i32 i = 0; i < model->data.meshCount; i++){
-        if (model->data.meshCount != model->data.materialCount) { log_error("Model mesh count does not match material count"); continue; }
-        DrawMesh(model->data.meshes[i], model->data.materials[i], model->data.transform);
+        for (i32 j = 0; j < model->data.materialCount; j++){
+            if (model->data.meshMaterial[i] == j){
+                DrawMesh(model->data.meshes[i], model->data.materials[j], model->data.transform);
+            }
+        }
+        // if (model->data.meshCount != model->data.materialCount) { log_error("Model mesh count does not match material count"); continue; }
+        // DrawMesh(model->data.meshes[i], model->data.materials[i], model->data.transform);
     }
 }
 
-void ac::model_render_wireframe(ac::model *model){
+void ac::model_render_wireframe(ac::model *model, const Color& tint){
     if(!model) { log_error("Cannot render wireframe, model is NULL"); return; }
-    for (i32 i = 0; i < model->data.meshCount; i++){
+    for (i32 i = 0; i < model->data.materialCount; i++){
+        // Color color = model->data.materials[i].maps[MATERIAL_MAP_DIFFUSE].color;
+
+        // Color colorTint = WHITE;
+        // colorTint.r = (unsigned char)(((int)color.r*(int)tint.r)/255);
+        // colorTint.g = (unsigned char)(((int)color.g*(int)tint.g)/255);
+        // colorTint.b = (unsigned char)(((int)color.b*(int)tint.b)/255);
+        // colorTint.a = (unsigned char)(((int)color.a*(int)tint.a)/255);
+
+        // model->data.materials[i].maps[MATERIAL_MAP_DIFFUSE].color = colorTint;
         rlEnableWireMode();
         ac::model_render(model);
         rlDisableWireMode();
+        // model->data.materials[i].maps[MATERIAL_MAP_DIFFUSE].color = color;
     }
 }
 
@@ -703,20 +717,24 @@ i32 ac::material_set_texture(Material *material, const Texture2D &texture, const
     return slot;
 }
 
-Vector3 ac::camera_move(ac::camera *camera, const Vector3 &delta){
+Vector3 ac::camera_move(ac::camera *camera, const Vector3 &delta, const b8 apply){
     if (!camera) { log_error("Cannot move camera, camera is NULL"); return {0}; }
     Vector3 offset = delta * camera->movement_speed * engine_get_delta_time();
-    CameraMoveRight(&camera->camera, offset.x, false);
-    CameraMoveForward(&camera->camera, offset.z, false);
-    CameraMoveUp(&camera->camera, offset.y);
+    if (apply){
+        CameraMoveRight(&camera->camera, offset.x, false);
+        CameraMoveForward(&camera->camera, offset.z, false);
+        CameraMoveUp(&camera->camera, offset.y);
+    }
     return offset;
 }
 
-Vector3 ac::camera_rotate(ac::camera *camera, const Vector3 &delta, const b8 around_target){
+Vector3 ac::camera_rotate(ac::camera *camera, const Vector3 &delta, const b8 around_target, const b8 apply){
     if (!camera) { log_error("Cannot rotate camera, camera is NULL"); return {0}; }
     const Vector3 offset = -delta * camera->rotation_speed * engine_get_delta_time();
-    CameraPitch(&camera->camera, offset.y, true, true, false);
-    CameraYaw(&camera->camera, offset.x, true);
+    if (apply) {
+        CameraPitch(&camera->camera, offset.y, true, around_target, false);
+        CameraYaw(&camera->camera, offset.x, around_target);
+    }
     return offset;
 }
 
@@ -886,25 +904,25 @@ void ac::editor_init(){
 
         static void move_camera_rotate_right(){
             ac::camera* camera = ac::scene_get_active_camera();
-            Vector3 delta = ac::camera_rotate(camera, {1.f, 0.f, 0.f});
+            Vector3 delta = ac::camera_rotate(camera, {1.f, 0.f, 0.f}, ac::editor_is_selecting(), !ac::editor_is_selecting());
             rotate_selected_object(delta);
         }
 
         static void move_camera_rotate_left(){
             ac::camera* camera = ac::scene_get_active_camera();
-            Vector3 delta = ac::camera_rotate(camera, {-1.f, 0.f, 0.f});
+            Vector3 delta = ac::camera_rotate(camera, {-1.f, 0.f, 0.f}, ac::editor_is_selecting(), !ac::editor_is_selecting());
             rotate_selected_object(delta);
         }
 
         static void move_camera_rotate_up(){
             ac::camera* camera = ac::scene_get_active_camera();
-            Vector3 delta = ac::camera_rotate(camera, {0.f, -1.f, 0.f});
+            Vector3 delta = ac::camera_rotate(camera, {0.f, -1.f, 0.f}, ac::editor_is_selecting(), !ac::editor_is_selecting());
             rotate_selected_object(delta);
         }
 
         static void move_camera_rotate_down(){
             ac::camera* camera = ac::scene_get_active_camera();
-            Vector3 delta = ac::camera_rotate(camera, {0.f, 1.f, 0.f});
+            Vector3 delta = ac::camera_rotate(camera, {0.f, 1.f, 0.f}, ac::editor_is_selecting(), !ac::editor_is_selecting());
             rotate_selected_object(delta);
         }
 
@@ -964,14 +982,14 @@ void ac::editor_render_3d(ac::camera* camera){
         for (i32 i = 0; i < model.meshCount; i++){
             const RayCollision& ray_collision =  GetRayCollisionMesh(res_ray, model.meshes[i], model.transform);
             if (ray_collision.hit){
-                DrawModelWires(model, {0}, {1.}, hover_color);
+                model_render_wireframe(&ac_model, hover_color);
                 selection_handler->hovered_models.push_back(&ac_model);
             }
         }
     }
     ac::selection_handler* selection = ac::editor_get_selection_handler();
     for (ac::model* model : selection->selected_models){
-        DrawModelWires(model->data, {0}, {1.}, select_color);
+        model_render_wireframe(model, select_color);
     }
 }
 
@@ -988,4 +1006,12 @@ void ac::editor_toggle_show_grid(){
 
 ac::selection_handler *ac::editor_get_selection_handler(){
     return &ac::engine_get_editor()->selection;
+}
+
+b8 ac::editor_is_selecting(){
+    return ac::editor_get_selection_handler()->selected_models.size() > 0;
+}
+
+b8 ac::editor_is_hovering(){
+    return ac::editor_get_selection_handler()->hovered_models.size() > 0;
 }

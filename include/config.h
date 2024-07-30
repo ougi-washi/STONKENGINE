@@ -54,6 +54,7 @@ namespace ac{
     std::string config_get_root_path();
     std::string config_get_scenes_path();
     std::string config_get_models_path();
+    std::string config_get_materials_path();
     std::string config_get_shaders_path();
     std::string config_get_textures_path();
     std::string config_get_sounds_path();

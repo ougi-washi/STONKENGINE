@@ -13,7 +13,7 @@ using json = nlohmann::json;
 
 namespace ac{
     struct model{
-        Model data = {};
+        Model data = {0};
         std::string path = "";
     };
 
@@ -147,7 +147,7 @@ namespace ac{
     ac::model* model_load(const json &model_json);
     ac::model* model_load(const std::string& path);
     void model_render(model* model);
-    void model_render_wireframe(model* model);
+    void model_render_wireframe(model* model, const Color& tint);
     void model_render_instances(model* model, Matrix* transforms, const i32 count);
     void model_set_location(model* model, const Vector3& location);
     void model_set_rotation(model* model, const Vector3& rotation);
@@ -170,8 +170,8 @@ namespace ac{
     i32 material_set_matrix(Material* material, const Matrix& value, const std::string& uniform_name);
     i32 material_set_texture(Material* material, const Texture2D& texture, const std::string& uniform_name);
     // camera
-    Vector3 camera_move(camera* camera, const Vector3& delta);
-    Vector3 camera_rotate(camera* camera, const Vector3& delta, const b8 around_target = false);
+    Vector3 camera_move(camera* camera, const Vector3& delta, const b8 apply = true);
+    Vector3 camera_rotate(camera* camera, const Vector3& delta, const b8 around_target = false, const b8 apply = true);
     void camera_set_position(camera* camera, const Vector3& position);
     void camera_set_target(camera* camera, const Vector3& target);
     void camera_set_fovy(camera* camera, const f32 fovy);
@@ -199,5 +199,7 @@ namespace ac{
     void editor_render_3d(ac::camera* camera);
     void editor_render_2d();
     void editor_toggle_show_grid();
-    selection_handler* editor_get_selection_handler();
+    selection_handler* editor_get_selection_handler();  
+    b8 editor_is_selecting();
+    b8 editor_is_hovering();
 }

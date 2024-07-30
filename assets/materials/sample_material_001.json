@@ -1,7 +1,7 @@
 {
     "name": "sample_material_001",
-    "vertex": "basic.vert",
-    "fragment": "basic.frag",
+    "vertex": "sample_vert.glsl",
+    "fragment": "sample_frag.glsl",
     "uniforms": {
         "u_color": {
             "type": "vec3",

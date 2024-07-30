@@ -47,6 +47,15 @@ std::string ac::config_get_models_path(){
     return paths["models"];
 }
 
+std::string ac::config_get_materials_path(){
+    json paths = ac::config_get_assets_paths();
+    if (paths.empty()) {
+        log_error("Could not get materials path, paths json is empty");
+        return std::string();
+    }
+    return paths["materials"];
+}
+
 std::string ac::config_get_shaders_path(){
     json paths = ac::config_get_assets_paths();
     if (paths.empty()) {
