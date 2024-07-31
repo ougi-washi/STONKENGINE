@@ -20,7 +20,7 @@ i32 main(i32 argc, const char *argv[]){
     ac::text* text = ac::push_back(&ui_element.object->texts);
     text->font = GetFontDefault();
     text->string = "STONKENGINE";
-    text->position = {200, 20};
+    text->position = {600, 20};
     text->fontSize = 30;
     text->spacing = 10;
     text->tint = {255, 255, 255, 255};

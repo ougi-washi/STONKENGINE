@@ -580,7 +580,7 @@ void ac::scene_2d_bake(object_2d *object, RenderTexture2D *render_texture){
     BeginTextureMode(*render_texture);
     {
         ClearBackground({0, 0, 0, 0});
-        // TODO: Implement shader system
+        // TODO: Implement shader system (not working atm)
         // shader_load(object->shader, object->vertex, object->fragment);
         // for (sz i = 0; i < object->textures.size(); ++i) {
         //     shader_set_texture(&object->shader, object->textures[i], "texture" + std::to_string(i));
@@ -707,21 +707,16 @@ void ac::model_render(ac::model *model) {
 
 void ac::model_render_wireframe(ac::model *model, const Color& tint){
     if(!model) { log_error("Cannot render wireframe, model is NULL"); return; }
-    for (i32 i = 0; i < model->data.materialCount; i++){
-        // Color color = model->data.materials[i].maps[MATERIAL_MAP_DIFFUSE].color;
-        
-        // Color colorTint = WHITE;
-        // colorTint.r = (unsigned char)(((int)color.r*(int)tint.r)/255);
-        // colorTint.g = (unsigned char)(((int)color.g*(int)tint.g)/255);
-        // colorTint.b = (unsigned char)(((int)color.b*(int)tint.b)/255);
-        // colorTint.a = (unsigned char)(((int)color.a*(int)tint.a)/255);
-
-        // model->data.materials[i].maps[MATERIAL_MAP_DIFFUSE].color = colorTint;
-        rlEnableWireMode();
-        ac::model_render(model);
-        rlDisableWireMode();
-        // model->data.materials[i].maps[MATERIAL_MAP_DIFFUSE].color = color;
+    Model model_copy = model->data;
+    model_copy.materials = (Material*)RL_MALLOC(model_copy.materialCount*sizeof(Material));
+    // model_copy.mater = 
+    // Shader default_shader = LoadShader(0, 0);
+    for (i32 i = 0; i < model_copy.materialCount; i++){
+        model_copy.materials[i] = LoadMaterialDefault();;
+        model_copy.materials[i].maps[MATERIAL_MAP_DIFFUSE].color = tint;
     }
+    DrawModelWires(model_copy, {0}, {1}, tint);
+    // UnloadShader(default_shader);
 }
 
 void ac::model_render_instances(ac::model *model, Matrix *transforms, const i32 count){
@@ -1064,6 +1059,20 @@ void ac::editor_init(){
             rotate_selected_object(delta);
         }
 
+        static void zoom_camera_in(){
+            ac::camera* camera = ac::scene_get_active_camera();
+            Vector3 cached_target = camera->camera.target;
+            Vector3 delta = ac::camera_move(camera, {0.f, 0.f, 1.f});
+            camera->camera.target = cached_target;
+        }
+
+        static void zoom_camera_out(){
+            ac::camera* camera = ac::scene_get_active_camera();
+            Vector3 cached_target = camera->camera.target;
+            Vector3 delta = ac::camera_move(camera, {0.f, 0.f, -1.f});
+            camera->camera.target = cached_target;
+        }
+
         static void select_object(){
             log_info("Selecting objects");
             ac::selection_handler* selection_handler = ac::editor_get_selection_handler();
@@ -1072,6 +1081,7 @@ void ac::editor_init(){
             }
             else if(selection_handler->hovered_models.size() > 0){
                 selection_handler->selected_models = selection_handler->hovered_models;
+                scene_get_active_camera()->camera.target = ac::transform_get_location(selection_handler->selected_models[0]->data.transform);
             }
             else {
                 selection_handler->selected_models.clear();
@@ -1098,21 +1108,26 @@ void ac::editor_init(){
     } input_functions;
     // input
     
-    ac::input_add_map({{{KEY_D, DOWN}},     {}, input_functions.move_camera_right});
-    ac::input_add_map({{{KEY_A, DOWN}},     {}, input_functions.move_camera_left});
-    ac::input_add_map({{{KEY_W, DOWN}},     {}, input_functions.move_camera_forward});
-    ac::input_add_map({{{KEY_S, DOWN}, {KEY_LEFT_CONTROL, UP}},     {}, input_functions.move_camera_backward});
-    ac::input_add_map({{{KEY_E, DOWN}},     {}, input_functions.move_camera_up});
-    ac::input_add_map({{{KEY_Q, DOWN}},     {}, input_functions.move_camera_down});
-    ac::input_add_map({{{KEY_RIGHT, DOWN}}, {}, input_functions.move_camera_rotate_right});
-    ac::input_add_map({{{KEY_LEFT, DOWN}},  {}, input_functions.move_camera_rotate_left});
-    ac::input_add_map({{{KEY_UP, DOWN}},    {}, input_functions.move_camera_rotate_up});
-    ac::input_add_map({{{KEY_DOWN, DOWN}},  {}, input_functions.move_camera_rotate_down});
-    ac::input_add_map({{{KEY_G, PRESSED}},  {}, editor_toggle_show_grid});
-    ac::input_add_map({{{KEY_SPACE, PRESSED}},  {}, input_functions.select_object});
-    ac::input_add_map({{{KEY_BACKSPACE, PRESSED}},  {}, input_functions.deselect_objects});
-    ac::input_add_map({{{KEY_LEFT_CONTROL, DOWN}, {KEY_S, PRESSED}},  {}, input_functions.save_active_scene});
-    ac::input_add_map({{{KEY_LEFT_CONTROL, DOWN}, {KEY_R, PRESSED}},  {}, input_functions.reload_scene});
+    ac::input_add_map({{{KEY_D, DOWN}}, {},                                     input_functions.move_camera_right});
+    ac::input_add_map({{{KEY_Z, DOWN}}, {},                                     input_functions.move_camera_left});
+    ac::input_add_map({{{KEY_A, DOWN}}, {},                                     input_functions.move_camera_left});
+    ac::input_add_map({{{KEY_W, DOWN}}, {},                                     input_functions.move_camera_forward});
+    ac::input_add_map({{{KEY_S, DOWN}, {KEY_LEFT_CONTROL, UP}}, {},             input_functions.move_camera_backward});
+    ac::input_add_map({{{KEY_E, DOWN}}, {},                                     input_functions.move_camera_up});
+    ac::input_add_map({{{KEY_Q, DOWN}}, {},                                     input_functions.move_camera_down});
+    ac::input_add_map({{{KEY_RIGHT, DOWN}}, {},                                 input_functions.move_camera_rotate_right});
+    ac::input_add_map({{{KEY_LEFT, DOWN}}, {},                                  input_functions.move_camera_rotate_left});
+    ac::input_add_map({{{KEY_UP, DOWN}}, {},                                    input_functions.move_camera_rotate_up});
+    ac::input_add_map({{{KEY_DOWN, DOWN}}, {},                                  input_functions.move_camera_rotate_down});
+    ac::input_add_map({{{KEY_PAGE_UP, DOWN}}, {},                               input_functions.zoom_camera_in});
+    ac::input_add_map({{{KEY_PAGE_DOWN, DOWN}}, {},                             input_functions.zoom_camera_out});
+    ac::input_add_map({{{KEY_LEFT_CONTROL, UP}, {KEY_G, PRESSED}}, {},          editor_toggle_show_grid});
+    ac::input_add_map({{{KEY_LEFT_CONTROL, DOWN}, {KEY_G, PRESSED}}, {},        editor_toggle_show_wireframe});
+    ac::input_add_map({{{KEY_SPACE, PRESSED}}, {},                              input_functions.select_object});
+    ac::input_add_map({{}, {{MOUSE_BUTTON_LEFT, PRESSED}},                      input_functions.select_object});
+    ac::input_add_map({{{KEY_BACKSPACE, PRESSED}}, {},                          input_functions.deselect_objects});
+    ac::input_add_map({{{KEY_LEFT_CONTROL, DOWN}, {KEY_S, PRESSED}}, {},        input_functions.save_active_scene});
+    ac::input_add_map({{{KEY_LEFT_CONTROL, DOWN}, {KEY_R, PRESSED}}, {},        input_functions.reload_scene});
 }
 
 void ac::editor_update(){
@@ -1130,13 +1145,17 @@ void ac::editor_render_3d(ac::camera* camera){
     }
     ac::selection_handler* selection_handler = ac::editor_get_selection_handler();
     selection_handler->hovered_models.clear();
-    Ray res_ray = GetScreenToWorldRay({(f32)GetScreenWidth() / 2.f, (f32)GetScreenHeight() / 2.f}, camera->camera);
+    Ray center_ray = GetScreenToWorldRay({(f32)GetScreenWidth() / 2.f, (f32)GetScreenHeight() / 2.f}, camera->camera);
+    Ray mouse_ray = GetScreenToWorldRay(GetMousePosition() , camera->camera);
     for (ac::model& ac_model : ac::scene_get_active()->models){
         const Model& model = ac_model.data;
         for (i32 i = 0; i < model.meshCount; i++){
-            const RayCollision& ray_collision =  GetRayCollisionMesh(res_ray, model.meshes[i], model.transform);
-            if (ray_collision.hit){
-                model_render_wireframe(&ac_model, hover_color);
+            const RayCollision& center_ray_collision =  GetRayCollisionMesh(center_ray, model.meshes[i], model.transform);
+            const RayCollision& mouse_ray_collision =  GetRayCollisionMesh(mouse_ray, model.meshes[i], model.transform);
+            if (center_ray_collision.hit || mouse_ray_collision.hit){
+                if (editor->show_wireframe){
+                    model_render_wireframe(&ac_model, hover_color);
+                }
                 selection_handler->hovered_models.push_back(&ac_model);
             }
         }
@@ -1148,11 +1167,27 @@ void ac::editor_render_3d(ac::camera* camera){
 }
 
 void ac::editor_render_2d(){
-    DrawText("- Editor Mode -", 12, 10, 20, {255, 0, 0, 255});
+    DrawText("- Editor Mode - (F1: help)", 12, 10, 30, {200, 0, 0, 255});
+    std::vector<std::string> lines = {
+        "WASDAE: movement",
+        "ARROWS: rotation",
+        "PAGE UP/DOWN: zoom",
+        "SPACE/LEFT_MOUSE: selection",
+        "G: toggle grid | CTRL+G: toggle hover wireframe",
+        "CTRL+S: save",
+        "CTRL+R: reload",
+    };
+    for (sz i = 0; i < lines.size(); i++){
+        DrawText(lines[i].c_str(), 12, 50 + i*30, 20, {180, 0, 0, 255});
+    }
 }
 
 void ac::editor_toggle_show_grid(){
     ac::engine_get_editor()->show_grid = !ac::engine_get_editor()->show_grid;
+}
+
+void ac::editor_toggle_show_wireframe(){
+    ac::engine_get_editor()->show_wireframe = !ac::engine_get_editor()->show_wireframe;
 }
 
 ac::selection_handler *ac::editor_get_selection_handler(){

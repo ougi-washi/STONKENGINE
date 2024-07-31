@@ -116,6 +116,7 @@ namespace ac{
         b8 is_active = false;
         ac::selection_handler selection = {};
         b8 show_grid = true;
+        b8 show_wireframe = true;
     };
 
     typedef std::function<void(void)> command; 
@@ -228,6 +229,7 @@ namespace ac{
     void editor_render_3d(ac::camera* camera);
     void editor_render_2d();
     void editor_toggle_show_grid();
+    void editor_toggle_show_wireframe();
     selection_handler* editor_get_selection_handler();  
     b8 editor_is_selecting();
     b8 editor_is_hovering();
