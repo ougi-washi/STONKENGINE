@@ -1,4 +1,4 @@
-// Abstract City - Jed Fakhfekh - https://github.com/ougi-washi
+// STONKENGINE - Jed Fakhfekh - https://github.com/ougi-washi
 #pragma once
 
 #define AC_EDITOR_MODE 1

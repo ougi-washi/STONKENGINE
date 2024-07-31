@@ -1,4 +1,4 @@
-// Abstract City - Jed Fakhfekh - https://github.com/ougi-washi
+// STONKENGINE - Jed Fakhfekh - https://github.com/ougi-washi
 #include "log.h"
 #include <stdio.h>
 #include <stdarg.h>

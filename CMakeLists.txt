@@ -1,9 +1,9 @@
-# Abstract City - Jed Fakhfekh - https://github.com/ougi-washi
+# STONKENGINE - Jed Fakhfekh - https://github.com/ougi-washi
 
 ## General
 cmake_minimum_required(VERSION 3.22.1)
 
-project(AbstractCity LANGUAGES C CXX)
+project(STONKENGINE LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 20)
 
 if(NOT CMAKE_GENERATOR)

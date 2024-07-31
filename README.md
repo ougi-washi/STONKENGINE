@@ -1,4 +1,4 @@
-# abstract-city
+# STONKENGINE
 Lightweight engine using [Raylib](https://github.com/raysan5/raylib).
 
 ## Building
