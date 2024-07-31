@@ -8,13 +8,13 @@
 
 using json = nlohmann::json;
 
-namespace ac{
+namespace se{
 
     template <typename T>
     T config_get_value(const std::string& key) {
-        std::ifstream file(AC_CONFIG_FILE);
+        std::ifstream file(SE_CONFIG_FILE);
         if (!file.is_open()) {
-            log_error("Could not get config value, unable to open file: %s", AC_CONFIG_FILE);
+            log_error("Could not get config value, unable to open file: %s", SE_CONFIG_FILE);
             return T();
         }
 

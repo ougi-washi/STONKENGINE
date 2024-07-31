@@ -4,9 +4,9 @@
 #include "raylib.h"
 #include <string>
 
-namespace ac{
+namespace se{
     std::string read_file(const std::string& path);
-} // namespace ac
+} // namespace se
 
 // Vector2
 Vector2 operator+(const Vector2& a, const Vector2& b);

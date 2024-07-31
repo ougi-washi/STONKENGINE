@@ -11,7 +11,7 @@
 #include "json/json.h"
 using json = nlohmann::json;
 
-namespace ac{
+namespace se{
     struct model{
         Model data = {0};
         std::string path = "";
@@ -106,15 +106,15 @@ namespace ac{
     };
 
     struct selection_handler{
-        std::vector<ac::model*> hovered_models = {};
-        std::vector<ac::model*> selected_models = {};
-        std::vector<ac::camera*> selected_cameras = {}; // TODO: Maybe it will be removed?
-        std::vector<ac::light*> selected_lights = {};
+        std::vector<se::model*> hovered_models = {};
+        std::vector<se::model*> selected_models = {};
+        std::vector<se::camera*> selected_cameras = {}; // TODO: Maybe it will be removed?
+        std::vector<se::light*> selected_lights = {};
     };
 
     struct editor{
         b8 is_active = false;
-        ac::selection_handler selection = {};
+        se::selection_handler selection = {};
         b8 show_grid = true;
         b8 show_wireframe = true;
     };
@@ -128,7 +128,7 @@ namespace ac{
         std::vector<model> models_pool = {};
         input_handler input = {};
         command_queue render_queue = {};
-        ac::editor editor = {};
+        se::editor editor = {};
     };
     
     // engine
@@ -141,7 +141,7 @@ namespace ac{
     void engine_process_input();
     const f32 engine_get_delta_time();
     command_queue* engine_get_render_queue();
-    void engine_enqueue_render_command(const ac::command& render_command);
+    void engine_enqueue_render_command(const se::command& render_command);
     editor* engine_get_editor();
     // input
     input_handler* input_get_handler();
@@ -149,30 +149,30 @@ namespace ac{
     void input_process();
     void input_set_active(const b8 new_state);
     // scene
-    ac::scene* scene_make_new();
+    se::scene* scene_make_new();
     void scene_load(scene* scene, const std::string &path);
     void scene_render(scene* scene);
-    ac::scene* scene_get_active();
+    se::scene* scene_get_active();
     void scene_clear(scene* scene);
     void scene_save(scene* scene);
-    void scene_add_model(scene* scene, ac::model* model);
+    void scene_add_model(scene* scene, se::model* model);
     void scene_add_camera(scene* scene, Camera camera, const f32 movement_speed, const f32 rotation_speed, const b8 is_active);
-    ac::camera* scene_make_new_camera(scene* scene);
-    ac::camera* scene_get_active_camera(scene* scene);
-    ac::camera* scene_get_active_camera();
+    se::camera* scene_make_new_camera(scene* scene);
+    se::camera* scene_get_active_camera(scene* scene);
+    se::camera* scene_get_active_camera();
     // 2D
-    ac::scene_2d* scene_2d_make_new();
+    se::scene_2d* scene_2d_make_new();
     void scene_2d_render(scene_2d* scene);
     void scene_2d_load(scene_2d* scene, const std::string& path);
-    ac::scene_2d* scene_2d_get_active();
+    se::scene_2d* scene_2d_get_active();
     scene_2d_element scene_2d_make_new_object(scene_2d* scene);
     void scene_2d_element_bake(scene_2d_element& element);
     void scene_2d_bake_all(scene_2d* scene);
     void scene_2d_bake(object_2d* object, RenderTexture2D* render_texture);
     // model
-    ac::model* model_load(const json &model_json);
-    ac::model* model_load(const std::string& path);
-    void model_save(ac::model* model, json& model_json);
+    se::model* model_load(const json &model_json);
+    se::model* model_load(const std::string& path);
+    void model_save(se::model* model, json& model_json);
     void model_render(model* model);
     void model_render_wireframe(model* model, const Color& tint);
     void model_render_instances(model* model, Matrix* transforms, const i32 count);
@@ -226,7 +226,7 @@ namespace ac{
     // editor
     void editor_init();
     void editor_update();
-    void editor_render_3d(ac::camera* camera);
+    void editor_render_3d(se::camera* camera);
     void editor_render_2d();
     void editor_toggle_show_grid();
     void editor_toggle_show_wireframe();

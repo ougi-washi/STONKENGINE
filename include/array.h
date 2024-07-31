@@ -8,7 +8,7 @@
 #include "log.h"
 #include "types.h"
 
-namespace ac
+namespace se
 {
     template<typename T>
     T* push_back(std::vector<T> *array){
@@ -18,7 +18,7 @@ namespace ac
     }
 }
 
-#define AC_DECLARE_ARRAY(type, name) \
+#define SE_DECLARE_ARRAY(type, name) \
     typedef struct { \
         type* data; \
         sz size; \
@@ -86,17 +86,17 @@ namespace ac
         arr->capacity = 0; \
     }
 
-AC_DECLARE_ARRAY(u8, u8_array)
-AC_DECLARE_ARRAY(u16, u16_array)
-AC_DECLARE_ARRAY(u32, u32_array)
-AC_DECLARE_ARRAY(u64, u64_array)
-AC_DECLARE_ARRAY(i8, i8_array)
-AC_DECLARE_ARRAY(i16, i16_array)
-AC_DECLARE_ARRAY(i32, i32_array)
-AC_DECLARE_ARRAY(i64, i64_array)
-AC_DECLARE_ARRAY(f32, f32_array)
-AC_DECLARE_ARRAY(f64, f64_array)
-AC_DECLARE_ARRAY(sz, sz_array)
-AC_DECLARE_ARRAY(b8, b8_array)
-AC_DECLARE_ARRAY(char, char_array)
-AC_DECLARE_ARRAY(void*, void_array)
+SE_DECLARE_ARRAY(u8, u8_array)
+SE_DECLARE_ARRAY(u16, u16_array)
+SE_DECLARE_ARRAY(u32, u32_array)
+SE_DECLARE_ARRAY(u64, u64_array)
+SE_DECLARE_ARRAY(i8, i8_array)
+SE_DECLARE_ARRAY(i16, i16_array)
+SE_DECLARE_ARRAY(i32, i32_array)
+SE_DECLARE_ARRAY(i64, i64_array)
+SE_DECLARE_ARRAY(f32, f32_array)
+SE_DECLARE_ARRAY(f64, f64_array)
+SE_DECLARE_ARRAY(sz, sz_array)
+SE_DECLARE_ARRAY(b8, b8_array)
+SE_DECLARE_ARRAY(char, char_array)
+SE_DECLARE_ARRAY(void*, void_array)

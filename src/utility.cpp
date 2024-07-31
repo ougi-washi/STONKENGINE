@@ -8,7 +8,7 @@
 #include <fstream>
 #include <sstream>
 
-std::string ac::read_file(const std::string& path) {
+std::string se::read_file(const std::string& path) {
     std::ifstream file(path);
     if (!file.is_open()) {
         log_error("Could not read file: %s", path.c_str());

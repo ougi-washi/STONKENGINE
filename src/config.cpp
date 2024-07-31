@@ -4,13 +4,13 @@
 #include "defines.h"
 #include "log.h"
 
-json ac::config_get_paths(){
+json se::config_get_paths(){
     return config_get_value<json>("paths");
 }
 
-json ac::config_get_assets_paths()
+json se::config_get_assets_paths()
 {
-    json paths = ac::config_get_paths();
+    json paths = se::config_get_paths();
     if (paths.empty()) {
         log_error("Could not get assets paths, paths json is empty");
         return json();
@@ -18,9 +18,9 @@ json ac::config_get_assets_paths()
     return paths["assets"];
 }
 
-std::string ac::config_get_root_path()
+std::string se::config_get_root_path()
 {
-    json paths = ac::config_get_paths();
+    json paths = se::config_get_paths();
     if (paths.empty()) {
         log_error("Could not get root path, paths json is empty");
         return std::string();
@@ -28,9 +28,9 @@ std::string ac::config_get_root_path()
     return paths["root"];
 }
 
-std::string ac::config_get_scenes_path()
+std::string se::config_get_scenes_path()
 {
-    json paths = ac::config_get_assets_paths();
+    json paths = se::config_get_assets_paths();
     if (paths.empty()) {
         log_error("Could not get scene path, paths json is empty");
         return std::string();
@@ -38,8 +38,8 @@ std::string ac::config_get_scenes_path()
     return paths["scenes"];
 }
 
-std::string ac::config_get_models_path(){
-    json paths = ac::config_get_assets_paths();
+std::string se::config_get_models_path(){
+    json paths = se::config_get_assets_paths();
     if (paths.empty()) {
         log_error("Could not get models path, paths json is empty");
         return std::string();
@@ -47,8 +47,8 @@ std::string ac::config_get_models_path(){
     return paths["models"];
 }
 
-std::string ac::config_get_materials_path(){
-    json paths = ac::config_get_assets_paths();
+std::string se::config_get_materials_path(){
+    json paths = se::config_get_assets_paths();
     if (paths.empty()) {
         log_error("Could not get materials path, paths json is empty");
         return std::string();
@@ -56,8 +56,8 @@ std::string ac::config_get_materials_path(){
     return paths["materials"];
 }
 
-std::string ac::config_get_shaders_path(){
-    json paths = ac::config_get_assets_paths();
+std::string se::config_get_shaders_path(){
+    json paths = se::config_get_assets_paths();
     if (paths.empty()) {
         log_error("Could not get shaders path,  paths json is empty");
         return std::string();
@@ -65,16 +65,16 @@ std::string ac::config_get_shaders_path(){
     return paths["shaders"];
 }
 
-std::string ac::config_get_textures_path(){
-    json paths = ac::config_get_assets_paths();
+std::string se::config_get_textures_path(){
+    json paths = se::config_get_assets_paths();
     if (paths.empty()) {
         log_error("Could not get  textures path,  paths json is empty");
         return std::string();
     }
     return paths["textures"];
 }
-std::string ac::config_get_sounds_path(){
-    json paths = ac::config_get_assets_paths();
+std::string se::config_get_sounds_path(){
+    json paths = se::config_get_assets_paths();
     if (paths.empty()) {
         log_error("Could not get  sounds path,  paths json is empty");
         return std::string();
@@ -82,8 +82,8 @@ std::string ac::config_get_sounds_path(){
     return paths["sounds"];
 }
 
-std::string ac::config_get_fonts_path(){
-    json paths = ac::config_get_assets_paths();
+std::string se::config_get_fonts_path(){
+    json paths = se::config_get_assets_paths();
     if (paths.empty()) {
         log_error("Could not get  fonts path,  paths json is empty");
         return std::string();

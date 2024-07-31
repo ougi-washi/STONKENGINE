@@ -69,31 +69,31 @@ typedef bool		    b8;
 
 typedef enum flag
 {
-	AC_INVALID			= 0x00,
-	AC_VALID			= 0x01,
-	AC_LOCKED			= 0x02,
-	AC_DIRTY			= 0x03,
-	AC_MAX				= 0x04,
+	SE_INVALID			= 0x00,
+	SE_VALID			= 0x01,
+	SE_LOCKED			= 0x02,
+	SE_DIRTY			= 0x03,
+	SE_MAX				= 0x04,
 } flag;
 
-#define AC_DECLARE_TYPE flag obj_flag
+#define SE_DECLARE_TYPE flag obj_flag
 
-#define AC_IS_VALID(_obj)      	((_obj) && (u8)(_obj)->obj_flag >= AC_VALID && (u8)(_obj)->obj_flag < AC_MAX)
-#define AC_IS_INVALID(_obj)    	(!(&((_obj)->obj_flag)) || !AC_IS_VALID(_obj))
-#define AC_IS_LOCKED(_obj)     	((u8)(_obj)->obj_flag == AC_LOCKED)
-#define AC_IS_UNLOCKED(_obj)   	((u8)(_obj)->obj_flag == AC_VALID)
-#define AC_IS_DIRTY(_obj)   	((u8)(_obj)->obj_flag == AC_DIRTY)
+#define SE_IS_VALID(_obj)      	((_obj) && (u8)(_obj)->obj_flag >= SE_VALID && (u8)(_obj)->obj_flag < SE_MAX)
+#define SE_IS_INVALID(_obj)    	(!(&((_obj)->obj_flag)) || !SE_IS_VALID(_obj))
+#define SE_IS_LOCKED(_obj)     	((u8)(_obj)->obj_flag == SE_LOCKED)
+#define SE_IS_UNLOCKED(_obj)   	((u8)(_obj)->obj_flag == SE_VALID)
+#define SE_IS_DIRTY(_obj)   	((u8)(_obj)->obj_flag == SE_DIRTY)
 
-#define AC_SET_VALID(_obj)     	if(AC_IS_INVALID(_obj))	(_obj)->obj_flag = AC_VALID
-#define AC_SET_INVALID(_obj)	(_obj)->obj_flag = AC_INVALID
-#define AC_LOCK(_obj)    	    if(AC_IS_UNLOCKED(_obj))	(_obj)->obj_flag = AC_LOCKED
-#define AC_UNLOCK(_obj)  	    if(AC_IS_LOCKED(_obj))		(_obj)->obj_flag = AC_VALID
-#define AC_SET_DIRTY(_obj)  	(_obj)->obj_flag = AC_DIRTY
+#define SE_SET_VALID(_obj)     	if(SE_IS_INVALID(_obj))	(_obj)->obj_flag = SE_VALID
+#define SE_SET_INVALID(_obj)	(_obj)->obj_flag = SE_INVALID
+#define SE_LOCK(_obj)    	    if(SE_IS_UNLOCKED(_obj))	(_obj)->obj_flag = SE_LOCKED
+#define SE_UNLOCK(_obj)  	    if(SE_IS_LOCKED(_obj))		(_obj)->obj_flag = SE_VALID
+#define SE_SET_DIRTY(_obj)  	(_obj)->obj_flag = SE_DIRTY
 
-#define AC_WAIT_AND_LOCK(_obj) 																\
+#define SE_WAIT_AND_LOCK(_obj) 																\
 do{ u64 loop_counter = 0; 																	\
-while (AC_IS_LOCKED(_obj) && loop_counter < 1000000000) { loop_counter++; };				\
-AC_LOCK(_obj); } while(0)
+while (SE_IS_LOCKED(_obj) && loop_counter < 1000000000) { loop_counter++; };				\
+SE_LOCK(_obj); } while(0)
 
 // This is a dummy type to avoid compilation errors when using void pointers
-typedef struct flagged_struct { AC_DECLARE_TYPE; } flagged_struct;
+typedef struct flagged_struct { SE_DECLARE_TYPE; } flagged_struct;
