@@ -716,6 +716,7 @@ void se::model_render_wireframe(se::model *model, const Color& tint){
         model_copy.materials[i].maps[MATERIAL_MAP_DIFFUSE].color = tint;
     }
     DrawModelWires(model_copy, {0}, {1}, tint);
+    RL_FREE(model_copy.materials);
     // UnloadShader(default_shader);
 }
 
@@ -1073,19 +1074,14 @@ void se::editor_init(){
             camera->camera.target = cached_target;
         }
 
-        static void select_object(){
-            log_info("Selecting objects");
-            se::selection_handler* selection_handler = se::editor_get_selection_handler();
-            if (selection_handler->selected_models.size() > 0){
-                selection_handler->selected_models.clear();
-            }
-            else if(selection_handler->hovered_models.size() > 0){
-                selection_handler->selected_models = selection_handler->hovered_models;
-                scene_get_active_camera()->camera.target = se::transform_get_location(selection_handler->selected_models[0]->data.transform);
-            }
-            else {
-                selection_handler->selected_models.clear();
-            }
+        static void select_object_mouse(){
+            log_info("Selecting object with mouse / touch");
+            se::editor_select({(f32)GetMouseX(), (f32)GetMouseY()});            
+        }
+
+        static void select_object_center(){
+            log_info("Selecting object using the center of the screen");
+            se::editor_select({(f32)GetScreenWidth() / 2.f, (f32)GetScreenHeight() / 2.f});
         }
 
         static void deselect_objects(){
@@ -1123,15 +1119,15 @@ void se::editor_init(){
     se::input_add_map({{{KEY_PAGE_DOWN, DOWN}}, {},                             input_functions.zoom_camera_out});
     se::input_add_map({{{KEY_LEFT_CONTROL, UP}, {KEY_G, PRESSED}}, {},          editor_toggle_show_grid});
     se::input_add_map({{{KEY_LEFT_CONTROL, DOWN}, {KEY_G, PRESSED}}, {},        editor_toggle_show_wireframe});
-    se::input_add_map({{{KEY_SPACE, PRESSED}}, {},                              input_functions.select_object});
-    se::input_add_map({{}, {{MOUSE_BUTTON_LEFT, PRESSED}},                      input_functions.select_object});
+    se::input_add_map({{{KEY_SPACE, PRESSED}}, {},                              input_functions.select_object_center});
+    se::input_add_map({{}, {{MOUSE_BUTTON_LEFT, PRESSED}},                      input_functions.select_object_mouse});
     se::input_add_map({{{KEY_BACKSPACE, PRESSED}}, {},                          input_functions.deselect_objects});
     se::input_add_map({{{KEY_LEFT_CONTROL, DOWN}, {KEY_S, PRESSED}}, {},        input_functions.save_active_scene});
     se::input_add_map({{{KEY_LEFT_CONTROL, DOWN}, {KEY_R, PRESSED}}, {},        input_functions.reload_scene});
 }
 
 void se::editor_update(){
-
+    se::editor_hover({(f32)GetScreenWidth() / 2.f, (f32)GetScreenHeight() / 2.f});
 }
 
 void se::editor_render_3d(se::camera* camera){
@@ -1143,26 +1139,13 @@ void se::editor_render_3d(se::camera* camera){
     if (editor->show_grid){
         DrawGrid(50, 1.f);
     }
-    se::selection_handler* selection_handler = se::editor_get_selection_handler();
-    selection_handler->hovered_models.clear();
-    Ray center_ray = GetScreenToWorldRay({(f32)GetScreenWidth() / 2.f, (f32)GetScreenHeight() / 2.f}, camera->camera);
-    Ray mouse_ray = GetScreenToWorldRay(GetMousePosition() , camera->camera);
-    for (se::model& ac_model : se::scene_get_active()->models){
-        const Model& model = ac_model.data;
-        for (i32 i = 0; i < model.meshCount; i++){
-            const RayCollision& center_ray_collision =  GetRayCollisionMesh(center_ray, model.meshes[i], model.transform);
-            const RayCollision& mouse_ray_collision =  GetRayCollisionMesh(mouse_ray, model.meshes[i], model.transform);
-            if (center_ray_collision.hit || mouse_ray_collision.hit){
-                if (editor->show_wireframe){
-                    model_render_wireframe(&ac_model, hover_color);
-                }
-                selection_handler->hovered_models.push_back(&ac_model);
-            }
-        }
-    }
+
     se::selection_handler* selection = se::editor_get_selection_handler();
     for (se::model* model : selection->selected_models){
         model_render_wireframe(model, select_color);
+    }
+    for (se::model* model : selection->hovered_models){
+        model_render_wireframe(model, hover_color);
     }
 }
 
@@ -1200,4 +1183,45 @@ b8 se::editor_is_selecting(){
 
 b8 se::editor_is_hovering(){
     return se::editor_get_selection_handler()->hovered_models.size() > 0;
+}
+
+se::model *se::get_model_from_screen(const Vector2 &screen_position){
+    se::camera* camera = se::scene_get_active_camera();
+    Ray mouse_ray = GetScreenToWorldRay(screen_position, camera->camera);
+    se::selection_handler* selection_handler = se::editor_get_selection_handler();
+    for (se::model& se_model : se::scene_get_active()->models){
+        const Model& model = se_model.data;
+        for (i32 i = 0; i < model.meshCount; i++){
+            const RayCollision& mouse_ray_collision =  GetRayCollisionMesh(mouse_ray, model.meshes[i], model.transform);
+            if (mouse_ray_collision.hit){
+                return &se_model;
+            }
+        }
+    }
+    return nullptr;
+}
+
+b8 se::editor_hover(const Vector2 &screen_position){
+   se::model* hovered_model = get_model_from_screen(screen_position);
+    se::editor_get_selection_handler()->hovered_models.clear();
+   if (hovered_model){
+       se::editor_get_selection_handler()->hovered_models.push_back(hovered_model);
+       return true;
+   }
+    return false;
+}
+
+b8 se::editor_select(const Vector2 &screen_position){
+    se::model* selected_model = get_model_from_screen(screen_position);
+    se::selection_handler* selection_handler = se::editor_get_selection_handler();
+    selection_handler->selected_models.clear();
+    if (selected_model){
+        if (selection_handler->selected_models.size() > 0){
+            selection_handler->selected_models.clear();
+        }
+        selection_handler->selected_models.push_back(selected_model);
+        scene_get_active_camera()->camera.target = se::transform_get_location(selected_model->data.transform);
+        return true;
+    }
+    return false;
 }

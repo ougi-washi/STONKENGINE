@@ -233,4 +233,7 @@ namespace se{
     selection_handler* editor_get_selection_handler();  
     b8 editor_is_selecting();
     b8 editor_is_hovering();
+    se::model* get_model_from_screen(const Vector2& screen_position);
+    b8 editor_hover(const Vector2& screen_position);
+    b8 editor_select(const Vector2& screen_position);
 }
