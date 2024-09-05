@@ -618,18 +618,9 @@ se::model* se::model_load(const json &model_json){
     if (!model) { log_error("Could not load scene, model is NULL"); return nullptr; }
     if (model_json.contains("transform")){
         const json& transform = model_json["transform"];
-        Vector3 translation = {};
-        Vector3 rotation = {};
-        Vector3 scale = {};
-        if (transform.contains("translation")){
-            translation = {transform["translation"][0], transform["translation"][1], transform["translation"][2]};
-        }
-        if (transform.contains("rotation")){
-            rotation = {transform["rotation"][0], transform["rotation"][1], transform["rotation"][2]};
-        }
-        if (transform.contains("scale")){
-            scale = {transform["scale"][0], transform["scale"][1], transform["scale"][2]};
-        }
+        const Vector3& translation = transform_get_translation(transform);
+        const Vector3& rotation = transform_get_rotation(transform);
+        const Vector3& scale = transform_get_scale(transform);
         model->data.transform = get_transform_matrix(translation, rotation, scale, translation);
     }
     if (model_json.contains("materials")){
@@ -646,6 +637,16 @@ se::model* se::model_load(const json &model_json){
             model->data.materialCount++;
             model->data.materials = (Material*)RL_REALLOC(model->data.materials, model->data.materialCount*sizeof(Material));
             material_load(model->data.materials[i], json::parse(material_file_content));
+        }
+    }
+    if (model_json.contains("instances")){
+        const std::vector<json>& instances = model_json["instances"];
+        for (const json& instance : instances){
+            if (!instance.contains("transform")) { log_error("Could not load instance, transform not found"); continue; }
+            const Vector3& translation = transform_get_translation(instance["transform"]);
+            const Vector3& rotation = transform_get_rotation(instance["transform"]);
+            const Vector3& scale = transform_get_scale(instance["transform"]);
+            model->instances.transforms.push_back(get_transform_matrix({0}, rotation, scale, {0}));
         }
     }
     return model;
@@ -696,10 +697,16 @@ void se::model_save(se::model *model, json &model_json){
 
 void se::model_render(se::model *model) {
     if(!model) { log_error("Cannot render, model is NULL"); return; }
-    for (i32 i = 0; i < model->data.meshCount; i++){
-        for (i32 j = 0; j < model->data.materialCount; j++){
-            if (model->data.meshMaterial[i] == j){
-                DrawMesh(model->data.meshes[i], model->data.materials[j], model->data.transform);
+    
+    if (model->instances.transforms.size() > 0) {
+        se::model_render_instances(model);
+    }
+    else {
+        for (i32 i = 0; i < model->data.meshCount; i++){
+            for (i32 j = 0; j < model->data.materialCount; j++){
+                if (model->data.meshMaterial[i] == j){
+                    DrawMesh(model->data.meshes[i], model->data.materials[j], model->data.transform);
+                }
             }
         }
     }
@@ -720,10 +727,15 @@ void se::model_render_wireframe(se::model *model, const Color& tint){
     // UnloadShader(default_shader);
 }
 
-void se::model_render_instances(se::model *model, Matrix *transforms, const i32 count){
+void se::model_render_instances(se::model *model){
     if(!model) { log_error("Cannot render instances, model is NULL"); return; }
     for (i32 i = 0; i < model->data.meshCount; i++){
-        DrawMeshInstanced(model->data.meshes[i], model->data.materials[model->data.meshMaterial[i]], transforms, count);
+        for (i32 j = 0; j < model->data.materialCount; j++){
+            if (model->data.meshMaterial[i] == j){
+                DrawMeshInstanced(model->data.meshes[i], model->data.materials[j], model->instances.transforms.data(), model->instances.transforms.size());
+            }
+        }
+        // DrawMeshInstanced(model->data.meshes[i], model->data.materials[model->data.meshMaterial[i]], transforms, count);
     }
 }
 
@@ -850,6 +862,27 @@ void se::camera_set_target(Camera* camera, const Vector3& target){
 void se::camera_set_fovy(Camera* camera, const f32 fovy){
     if (!camera) { log_error("Cannot set camera fovy, camera is NULL"); return; }
     camera->fovy = fovy;
+}
+
+const Vector3 se::transform_get_translation(const json &transform_json){
+    if (transform_json.contains("translation")){
+        return {transform_json["translation"][0], transform_json["translation"][1], transform_json["translation"][2]};
+    }
+    return {0};
+}
+
+const Vector3 se::transform_get_rotation(const json &transform_json){
+    if (transform_json.contains("rotation")){
+        return {transform_json["rotation"][0], transform_json["rotation"][1], transform_json["rotation"][2]};
+    }
+    return {0};
+}
+
+const Vector3 se::transform_get_scale(const json &transform_json){
+    if (transform_json.contains("scale")){
+        return {transform_json["scale"][0], transform_json["scale"][1], transform_json["scale"][2]};
+    }
+    return {1};
 }
 
 void se::transform_set_location(Matrix &transform, const Vector3 &location){
@@ -1080,8 +1113,14 @@ void se::editor_init(){
         }
 
         static void select_object_center(){
-            log_info("Selecting object using the center of the screen");
-            se::editor_select({(f32)GetScreenWidth() / 2.f, (f32)GetScreenHeight() / 2.f});
+            if (se::editor_is_selecting()) {
+                log_info("Deselecting objects");
+                deselect_objects();
+            }
+            else{
+                log_info("Selecting object using the center of the screen");
+                se::editor_select({(f32)GetScreenWidth() / 2.f, (f32)GetScreenHeight() / 2.f});
+            }
         }
 
         static void deselect_objects(){

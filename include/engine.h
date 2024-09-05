@@ -12,11 +12,15 @@
 using json = nlohmann::json;
 
 namespace se{
+
     struct model{
         Model data = {0};
         std::string path = "";
         std::string name = "";
         std::vector<std::string> materials = {};
+        struct instances{
+            std::vector<Matrix> transforms = {};
+        } instances;
     };
 
     struct camera {
@@ -175,7 +179,7 @@ namespace se{
     void model_save(se::model* model, json& model_json);
     void model_render(model* model);
     void model_render_wireframe(model* model, const Color& tint);
-    void model_render_instances(model* model, Matrix* transforms, const i32 count);
+    void model_render_instances(model* model);
     void model_set_location(model* model, const Vector3& location);
     void model_set_rotation(model* model, const Vector3& rotation);
     void model_set_scale(model* model, const Vector3& scale);
@@ -207,6 +211,9 @@ namespace se{
     void camera_set_target(Camera* camera, const Vector3& target);
     void camera_set_fovy(Camera* camera, const f32 fovy);
     // transform
+    const Vector3 transform_get_translation(const json& transform_json);
+    const Vector3 transform_get_rotation(const json& transform_json);
+    const Vector3 transform_get_scale(const json& transform_json);
     void transform_set_location(Matrix& transform, const Vector3& location);
     void transform_set_rotation(Matrix& transform, const Vector3& rotation);
     void transform_set_scale(Matrix& transform, const Vector3& scale);

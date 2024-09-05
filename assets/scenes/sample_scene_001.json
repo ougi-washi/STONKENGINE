@@ -25,10 +25,42 @@
             "path": "cube.obj",
             "materials": ["sample_material_001.json"],
             "transform" : {
-                "translation": [0, 0, 0],
-                "rotation": [0, 0, 0],
+                "translation": [5, 0, 5],
+                "rotation": [0, 0, 0],  
                 "scale": [1, 1, 1]
             }
+        },
+        {
+            "name": "cube_instance_001",
+            "type": "model",
+            "path": "cube.obj",
+            "materials": ["sample_material_001.json"],
+            "instances" : [
+                {
+                    "transform" : {
+                        "translation": [0, 4, 0],
+                        "rotation": [0, 0, 0],  
+                        "scale": [1, 1, 1]
+                    },
+                    "custom": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+                },
+                {
+                    "transform" : {
+                        "translation": [2, 4, 0],
+                        "rotation": [0, 0, 0],  
+                        "scale": [1, 1, 1]
+                    },
+                    "custom": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+                },
+                {
+                    "transform" : {
+                        "translation": [-2, 4, 0],
+                        "rotation": [0, 0, 0],  
+                        "scale": [1, 1, 1]
+                    },
+                    "custom": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+                }
+            ]
         }
     ]
 }
