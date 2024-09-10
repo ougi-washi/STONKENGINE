@@ -260,32 +260,32 @@ void material_load(Material& material, const json &material_json){
     if (material_json.contains("uniforms")){
         const json& uniforms = material_json["uniforms"];
         for (const json& uniform : uniforms){
-            if (!uniform.contains("name")) { log_error("Could not load material, uniform name not found"); continue; }
-            if (!uniform.contains("type")) { log_error("Could not load material, uniform type not found"); continue; }
+            if (!uniform.contains("name")) { log_error("Could not load uniform, invalid name"); continue; }
+            if (!uniform.contains("type")) { log_error("Could not load uniform, invalid type"); continue; }
             const std::string& uniform_name = uniform["name"];
             const std::string& uniform_type = uniform["type"];
             if (uniform_type == "float"){
-                if (!uniform.contains("value")) { log_error("Could not load material, uniform value not found"); continue; }
+                if (!uniform.contains("value")) { log_error("Could not load uniform, uniform value not found"); continue; }
                 const f32 value = uniform["value"];
                 se::material_set_float(&material, value, uniform_name);
             }
             else if (uniform_type == "int"){
-                if (!uniform.contains("value")) { log_error("Could not load material, uniform value not found"); continue; }
+                if (!uniform.contains("value")) { log_error("Could not load uniform, uniform value not found"); continue; }
                 const i32 value = uniform["value"];
                 se::material_set_int(&material, value, uniform_name);
             }
             else if (uniform_type == "vec3f"){
-                if (!uniform.contains("value")) { log_error("Could not load material, uniform value not found"); continue; }
+                if (!uniform.contains("value")) { log_error("Could not load uniform, uniform value not found"); continue; }
                 const Vector3& value = {uniform["value"][0], uniform["value"][1], uniform["value"][2]};
                 se::material_set_vector3f(&material, value, uniform_name);
             }
             else if (uniform_type == "vec3i"){
-                if (!uniform.contains("value")) { log_error("Could not load material, uniform value not found"); continue; }
+                if (!uniform.contains("value")) { log_error("Could not load uniform, uniform value not found"); continue; }
                 const Vector3& value = {uniform["value"][0], uniform["value"][1], uniform["value"][2]};
                 se::material_set_vector3i(&material, value, uniform_name);
             }
             else if (uniform_type == "matrix"){
-                if (!uniform.contains("value")) { log_error("Could not load material, uniform value not found"); continue; }
+                if (!uniform.contains("value")) { log_error("Could not load uniform, uniform value not found"); continue; }
                 const Matrix& value = {
                     uniform["value"][0], uniform["value"][1], uniform["value"][2], uniform["value"][3],
                     uniform["value"][4], uniform["value"][5], uniform["value"][6], uniform["value"][7],
@@ -295,7 +295,7 @@ void material_load(Material& material, const json &material_json){
                 se::material_set_matrix(&material, value, uniform_name);
             }
             else if (uniform_type == "texture"){
-                if (!uniform.contains("value")) { log_error("Could not load material, uniform value not found"); continue; }
+                if (!uniform.contains("value")) { log_error("Could not load uniform, uniform value not found"); continue; }
                 const std::string& texture_path = uniform["value"];
                 const Texture2D& texture = LoadTexture(texture_path.c_str());
                 se::material_set_texture(&material, texture, uniform_name);
@@ -646,7 +646,7 @@ se::model* se::model_load(const json &model_json){
             const Vector3& translation = transform_get_translation(instance["transform"]);
             const Vector3& rotation = transform_get_rotation(instance["transform"]);
             const Vector3& scale = transform_get_scale(instance["transform"]);
-            model->instances.transforms.push_back(get_transform_matrix({0}, rotation, scale, {0}));
+            model->instances.transforms.push_back(get_transform_matrix(translation, rotation, scale, {0}));
         }
     }
     return model;
@@ -679,9 +679,6 @@ void se::model_save(se::model *model, json &model_json){
     model_json["path"] = model->path;
     model_json["transform"] = json::object();
     json& transform = model_json["transform"];
-    // Vector3 translation = transform_get_location(model->data.transform);
-    // Vector3 rotation = transform_get_rotation(model->data.transform);
-    // Vector3 scale = transform_get_scale(model->data.transform);
     Vector3 translation = {};
     Vector3 rotation = {};
     Vector3 scale = {};
@@ -697,7 +694,6 @@ void se::model_save(se::model *model, json &model_json){
 
 void se::model_render(se::model *model) {
     if(!model) { log_error("Cannot render, model is NULL"); return; }
-    
     if (model->instances.transforms.size() > 0) {
         se::model_render_instances(model);
     }
@@ -716,26 +712,78 @@ void se::model_render_wireframe(se::model *model, const Color& tint){
     if(!model) { log_error("Cannot render wireframe, model is NULL"); return; }
     Model model_copy = model->data;
     model_copy.materials = (Material*)RL_MALLOC(model_copy.materialCount*sizeof(Material));
-    // model_copy.mater = 
-    // Shader default_shader = LoadShader(0, 0);
     for (i32 i = 0; i < model_copy.materialCount; i++){
         model_copy.materials[i] = LoadMaterialDefault();;
         model_copy.materials[i].maps[MATERIAL_MAP_DIFFUSE].color = tint;
     }
     DrawModelWires(model_copy, {0}, {1}, tint);
     RL_FREE(model_copy.materials);
-    // UnloadShader(default_shader);
 }
 
 void se::model_render_instances(se::model *model){
     if(!model) { log_error("Cannot render instances, model is NULL"); return; }
+
+    const Matrix* transforms = model->instances.transforms.data();    // Get the transforms
+    const i32 count = model->instances.transforms.size();       // Get the number of instances
     for (i32 i = 0; i < model->data.meshCount; i++){
         for (i32 j = 0; j < model->data.materialCount; j++){
             if (model->data.meshMaterial[i] == j){
-                DrawMeshInstanced(model->data.meshes[i], model->data.materials[j], model->instances.transforms.data(), model->instances.transforms.size());
+                // Material& material = model->data.materials[j];
+                // // DrawMeshInstanced(model->data.meshes[i], model->data.materials[model->data.meshMaterial[i]], transforms, count);
+                // const i32 instance_matrix_loc = rlGetLocationAttrib(model->data.materials[i].shader.id, "instanceModelMatrix");
+                // if (instance_matrix_loc == -1) { log_error("Could not get instanceModelMatrix location"); break; }
+                // for (int k = 0; k < 4; k++) {
+                //     rlEnableVertexAttribute(instance_matrix_loc + k);
+                //     rlSetVertexAttribute(instance_matrix_loc + k, 4, RL_FLOAT, RL_FLOAT, sizeof(Matrix), k*sizeof(Vector4));
+                //     rlSetVertexAttributeDivisor(instance_matrix_loc + k, 1);
+                // }
+
+                // // Send instance matrices (transforms) to the shader
+                // glBindBuffer(GL_ARRAY_BUFFER, model->instanceMatrixVBO);
+                // glBufferData(GL_ARRAY_BUFFER, count * sizeof(Matrix), transforms, GL_STATIC_DRAW);
+
+                // rlUpdateVertexBuffer(model->instanceMatrixVBO, model->instances.transforms.data(), count * sizeof(Matrix), 0);
+                // // // Upload the instance matrices (transformations) into a buffer
+                // // if (model->data == 0) {
+                // //     // If buffer not initialized, load it
+                // //     model->instanceMatrixVBO = rlLoadVertexBuffer(model->instances.transforms.data(), count * sizeof(Matrix), false);
+                // // } else {
+                // //     // Update buffer data with the new instance matrices
+                // // }
+
+                // // Bind the material and texture for rendering
+                // if (model->data.materials[j].maps[MATERIAL_MAP_DIFFUSE].texture.id != 0) {
+                //     rlEnableTexture(model->data.materials[j].maps[MATERIAL_MAP_DIFFUSE].texture.id);
+                // }
+                                
+                // i32 eyeCount = 1;
+                // if (rlIsStereoRenderEnabled()) eyeCount = 2;
+                // for (i32 eye = 0; eye < eyeCount; eye++)
+                // {
+                //     // Calculate model-view-projection matrix (MVP)
+                //     Matrix matModelViewProjection = MatrixIdentity();
+                //     if (eyeCount == 1) matModelViewProjection = MatrixMultiply(matModelView, matProjection);
+                //     else
+                //     {
+                //         // Setup current eye viewport (half screen width)
+                //         rlViewport(eye*rlGetFramebufferWidth()/2, 0, rlGetFramebufferWidth()/2, rlGetFramebufferHeight());
+                //         matModelViewProjection = MatrixMultiply(MatrixMultiply(matModelView, rlGetMatrixViewOffsetStereo(eye)), rlGetMatrixProjectionStereo(eye));
+                //     }
+
+                //     // Send combined model-view-projection matrix to shader
+                //     rlSetUniformMatrix(material.shader.locs[SHADER_LOC_MATRIX_MVP], matModelViewProjection);
+
+                //     // Draw mesh instanced
+                //     if (mesh.indices != NULL) rlDrawVertexArrayElementsInstanced(0, mesh.triangleCount*3, 0, count);
+                //     else rlDrawVertexArrayInstanced(0, mesh.vertexCount, count);
+                // }
+
+                // // Now draw the mesh with instancing
+                // rlDrawMeshInstanced(model->data.meshes[i], count); // Assuming rlDrawMeshInstanced handles instancing
+                // rlDrawMeshInstanced
+                // rlDisableTexture();
             }
         }
-        // DrawMeshInstanced(model->data.meshes[i], model->data.materials[model->data.meshMaterial[i]], transforms, count);
     }
 }
 
