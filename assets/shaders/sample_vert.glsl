@@ -5,6 +5,7 @@ in vec2 vertexTexCoord;
 in vec3 vertexNormal;
 in vec3 vertexTangent;
 in vec4 vertexColor;
+in mat4 instanceTransform;
 
 // Input uniform values
 uniform mat4 mvp;
@@ -27,7 +28,7 @@ void main()
 {
     vec3 vertex_binormal = cross(vertexNormal, vertexTangent);
     mat3 normal_matrix = transpose(inverse(mat3(matModel)));
-    frag_position = vec3(matModel*vec4(vertexPosition, 1.0f));
+    frag_position = vec3(instanceTransform*matModel*vec4(vertexPosition, 1.0f));
     frag_texcoord = vertexTexCoord*2.0;
     frag_normal = normalize(normal_matrix*vertexNormal);
     frag_tangent = normalize(normal_matrix*vertexTangent);

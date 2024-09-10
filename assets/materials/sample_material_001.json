@@ -5,6 +5,7 @@
     "uniforms": {
         "u_color": {
             "type": "vec3",
+            "name": "u_color",
             "value": [1, 0, 0]
         }
     }
